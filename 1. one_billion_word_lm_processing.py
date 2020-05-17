@@ -1,11 +1,11 @@
-import pandas as pd
+from bs4 import BeautifulSoup
+from glob import glob
 
 import nltk
 from nltk.corpus import stopwords
 from collections import Counter
 import matplotlib.pyplot as plt
 from tqdm import tqdm
-import os
 import re
 from optparse import OptionParser
 
@@ -16,14 +16,17 @@ stops = set(stopwords.words('english'))
 
 def get_dataset_values_in_list(input_path):
     """
-    Based on wikitext dataset available on https://course.fast.ai/datasets
-    Function takes test and train dataset files and process it to list
+    Based on 'blogs' dataset. Function reads contents and saves to one list
     :return: list containing train and test data
     """
-    data_test = pd.read_csv(os.path.join(input_path, 'test.csv'), header=None)[0].tolist()
-    data_train = pd.read_csv(os.path.join(input_path, 'train.csv'), header=None)[0].tolist()
+    files_glob = glob(input_path + "*/*")
+    data_list = []
 
-    return data_test + data_train
+    for file in tqdm(files_glob, desc="Reading files"):
+        content = open(file).read()
+        data_list.append(content)
+
+    return data_list
 
 
 def plot_most_common_words(data_list, n=30):
@@ -69,7 +72,7 @@ def plot_most_common_without_stop_words(data_list, n=30):
 
 def preprocess_text(input_data_list, output_text_file_path):
     """
-    Function that preprossesses data from wikitext-2/wikitext-3 to ready to feed tokens.
+    Function that preprossesses data from blogs dataset to ready to feed tokens.
     Some values like numbers or dates are replaced by special token like <number> or <date>.
     There is no sense to make a vector of number or date. It is better to make a unique token
     of number or date to make for it a vector than for a specified one.
@@ -77,7 +80,6 @@ def preprocess_text(input_data_list, output_text_file_path):
     :param output_text_file_path: A path for output file
     :return:
     """
-    title_regex = re.compile("((= )+.*(= )+)\s+")
     space_regex = re.compile("(\s{2,})")
     date_regex = re.compile(
         "((\d{4}s)|(\d{2,4}\s–\s\d{2,4})|(\d{1,2} [A-Z][a-z]+ \d{2,4})|(((January)|(February)|(March)|(April)|(May)|(June)|(July)|(October)|(September)|(August)|(November)|(December))\s+\d{1,4})|(\d{1,4}\s+((January)|(February)|(March)|(April)|(May)|(June)|(July)|(October)|(September)|(August)|(November)|(December))))")
@@ -95,8 +97,7 @@ def preprocess_text(input_data_list, output_text_file_path):
 
     with open(output_text_file_path, "w", encoding="utf8") as f:
         for i, item in enumerate(tqdm(input_data_list, desc='Processing input')):
-            regexed = re.sub(title_regex, "", item)
-            regexed = re.sub(space_regex, " ", regexed)
+            regexed = re.sub(space_regex, " ", item)
             #     regexed = regexed.replace("  ", " ")
             regexed = re.sub(date_regex, "<date>", regexed)
             regexed = re.sub(number_regex, "<number>", regexed)
@@ -128,7 +129,7 @@ if __name__ == '__main__':
         "-i",
         "--input_dir_path",
         dest="input_dir_path",
-        help="Path to wikitext-2/wikitext-103 dir downloaded from fast.ai",
+        help="Path to heldout and training dir",
         metavar="PATH"
     )
 
