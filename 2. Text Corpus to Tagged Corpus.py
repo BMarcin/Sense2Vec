@@ -8,7 +8,7 @@ nlp = spacy.load("en_core_web_sm")
 
 
 def preprocess_pipeline(input_dir_path, output_file_path, custom_tokenizer_func, threads=4, batch=100):
-    file_inputs = [[line.replace("\n", "") for line in open(file).readlines()] for file in glob(input_dir_path + "*.txt")]
+    file_inputs = [line.replace("\n", "") for file in tqdm(glob(input_dir_path + "*.txt"), desc="Processing files") for line in open(file).readlines()]
     pipe = nlp.pipe(file_inputs, disable=["ner"],
                     n_threads=threads, batch_size=batch)
 
