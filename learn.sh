@@ -1,0 +1,9 @@
+export CUDA_VISIBLE_DEVICES=3
+python '3. Sense2Vec - CBOW.py' --lr=3e-3 \
+    --bs=10 \
+    --seq_len=21 \
+    --epochs=10 \
+    --device=cuda \
+    --input_corpus=data/corpus.txt \
+    --dataset_pickle_path=data/models/ds.pth \
+    --model_pickles_dir_path=data/models/
