@@ -4,43 +4,40 @@ from optparse import OptionParser
 import torch
 import torch.nn as nn
 from torch import optim
+from torch.utils.data import DataLoader
 from tqdm import tqdm
 import numpy as np
-import json
 
-from Sense2Vec.DS2 import DS2 as DS
-from Sense2Vec.Sense2VecRNN import Sense2VecRRN
+from Sense2Vec.DS import DS
+from Sense2Vec.Sense2VecCBOW import Sense2VecCBOW
 
 
-def train(epochs, criterion, optimizer, model, dataloader, savepath):
+def train(epochs, criterion, optimizer, model, dataloader, savepath, device):
     for epoch in range(epochs):
         t_batch = tqdm(dataloader, leave=False)
 
         epoch_loss = []
 
-        hidden = torch.zeros((2 * 2, dataloader.batch_size, 100)).to(device)
         for batch in t_batch:
-            x = batch.text
-            y = batch.target
+            x = batch[0].long().to(device)
+            y = batch[1].long().to(device)
 
             model.train()
             optimizer.zero_grad()
 
-            y_, hidden = model(x, hidden)
-            hidden = hidden.detach()
-
-            loss = criterion(y_.transpose(1, 2), y.data)
-            loss.backward()
+            y_ = model(x)
+            single_loss = criterion(y_, y)
+            single_loss.backward()
             optimizer.step()
 
-            losss = loss.item()
-            epoch_loss.append(losss)
+            single_loss_value = single_loss.item()
+            epoch_loss.append(single_loss_value)
 
             t_batch.set_description("Loss: {:.8f}".format(np.mean(epoch_loss[-1000:])))
         t_batch.close()
 
-        torch.save(model, os.path.join(savepath, "model_bidirectional_{}.pth".format(epoch + 1)))
-        print("Epoch {}/{}, Loss {:.8f}".format(epoch + 1, epochs, losss))
+        torch.save(model.state_dict(), os.path.join(savepath, "model_cbow_{}.pth".format(epoch + 1)))
+        print("Epoch {}/{}, Loss {:.8f}".format(epoch + 1, epochs, single_loss_value))
 
 
 if __name__ == '__main__':
@@ -118,16 +115,21 @@ if __name__ == '__main__':
     epochs = options.epochs
     device = torch.device(options.device)
 
-    ds = DS(
-        options.input_corpus,
-        bs,
-        seq_len,
-        device
-    )
-    torch.save(ds.TEXT.vocab, options.dataset_pickle_path)
+    assert seq_len % 2 == 1, 'Seq len has to be odd number'
 
-    DL = ds.build_iterator()
-    model = Sense2VecRRN(ds.bptt_len, len(ds.TEXT.vocab)).to(device)
+    if os.path.exists(options.dataset_pickle_path):
+        ds = torch.load(options.dataset_pickle_path)
+    else:
+        ds = DS("data/corpus_small.txt", 15)
+        torch.save(DS,options.dataset_pickle_path)
+
+    DL = DataLoader(dataset=ds, batch_size=bs, num_workers=4)
+
+    model = Sense2VecCBOW(
+        len(ds.token2idx),
+        100,
+        300
+    ).to(device)
 
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(model.parameters(), lr=lr)
@@ -138,5 +140,6 @@ if __name__ == '__main__':
         optimizer,
         model,
         DL,
-        options.model_pickles_dir_path
+        options.model_pickles_dir_path,
+        device
     )

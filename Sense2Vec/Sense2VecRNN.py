@@ -10,7 +10,7 @@ class Sense2VecRRN(nn.Module):
         self.len_token2idx = len_token2idx
         self.hidden_size = 100
 
-        self.rnn = nn.GRU(len_token2idx, self.hiddensize, batch_first=True, bias=False, bidirectional=True,
+        self.rnn = nn.GRU(len_token2idx, self.hidden_size, batch_first=True, bias=False, bidirectional=True,
                           num_layers=2)
 
         self.lin = nn.Linear(2 * self.hiddensize, len_token2idx, bias=False)

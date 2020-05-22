@@ -1,3 +1,4 @@
+import os
 from optparse import OptionParser
 import spacy
 from tqdm import tqdm
@@ -7,10 +8,12 @@ from Sense2Vec.tokenizer import create_custom_tokenizer as my_custom_tokenizer
 nlp = spacy.load("en_core_web_sm")
 
 
-def preprocess_pipeline(input_dir_path, output_file_path, custom_tokenizer_func, threads=4, batch=100):
-    file_inputs = [line.replace("\n", "") for file in tqdm(glob(input_dir_path + "*.txt"), desc="Processing files") for line in open(file).readlines()]
+def preprocess_pipeline(input_dir_path, output_file_path, custom_tokenizer_func, threads=4, batch=200):
+    print()
+    file_inputs = [line.replace("\n", "") for file in tqdm(glob(os.path.join(input_dir_path, "*.txt")), desc="Reading files") for
+                   line in open(file, encoding="utf8").readlines()]
     pipe = nlp.pipe(file_inputs, disable=["ner"],
-                    n_threads=threads, batch_size=batch)
+                    n_process=threads, batch_size=batch)
 
     combined_list = []
 
@@ -21,7 +24,7 @@ def preprocess_pipeline(input_dir_path, output_file_path, custom_tokenizer_func,
         for sent in doc.sents:
             combs = []
             for token in sent:
-                combs.append(token.text+"|"+token.pos_)
+                combs.append(token.text + "|" + token.pos_)
 
             combined_list.append(combs)
 
@@ -49,10 +52,26 @@ if __name__ == '__main__':
         metavar="FILE"
     )
 
+    parser.add_option(
+        "-t",
+        "--threads",
+        dest="threads",
+        help="number of threads for spacy pipeline",
+    )
+
+    parser.add_option(
+        "-b",
+        "--bs",
+        dest="bs",
+        help="Batchsize for spacy pipeline"
+    )
+
     options, args = parser.parse_args()
 
     preprocess_pipeline(
         options.input_dir_path,
         options.output_file_path,
-        my_custom_tokenizer
+        my_custom_tokenizer,
+        threads=int(options.threads),
+        batch=int(options.bs)
     )
