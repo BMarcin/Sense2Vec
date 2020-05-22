@@ -127,7 +127,7 @@ if __name__ == '__main__':
 
     model = Sense2VecCBOW(
         len(ds.token2idx),
-        100,
+        20000,
         300
     ).to(device)
 
