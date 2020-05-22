@@ -134,7 +134,7 @@ if __name__ == '__main__':
     if os.path.exists(options.dataset_pickle_path):
         ds = torch.load(options.dataset_pickle_path)
     else:
-        ds = DS(options.dataset_pickle_path, 15)
+        ds = DS(options.input_corpus, 15)
         torch.save(DS, options.dataset_pickle_path)
 
     DL = DataLoader(dataset=ds, batch_size=bs, num_workers=4)
