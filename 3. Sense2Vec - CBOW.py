@@ -107,6 +107,20 @@ if __name__ == '__main__':
         metavar="PATH"
     )
 
+    parser.add_option(
+        "--embeddings_size",
+        dest="embeddings_size",
+        help="Embedding vector size",
+        type=int
+    )
+
+    parser.add_option(
+        "--target_vectors",
+        dest="target_vectors",
+        help="Target vector size for each token",
+        type=int
+    )
+
     options, args = parser.parse_args()
 
     lr = options.lr
@@ -120,15 +134,15 @@ if __name__ == '__main__':
     if os.path.exists(options.dataset_pickle_path):
         ds = torch.load(options.dataset_pickle_path)
     else:
-        ds = DS("data/corpus_small.txt", 15)
-        torch.save(DS,options.dataset_pickle_path)
+        ds = DS(options.dataset_pickle_path, 15)
+        torch.save(DS, options.dataset_pickle_path)
 
     DL = DataLoader(dataset=ds, batch_size=bs, num_workers=4)
 
     model = Sense2VecCBOW(
         len(ds.token2idx),
-        20000,
-        300
+        options.embeddings_size,
+        options.target_vectors
     ).to(device)
 
     criterion = nn.CrossEntropyLoss()

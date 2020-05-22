@@ -6,4 +6,6 @@ python '3. Sense2Vec - CBOW.py' --lr=3e-3 \
     --device=cuda \
     --input_corpus=data/corpus.txt \
     --dataset_pickle_path=data/models/ds.pth \
-    --model_pickles_dir_path=data/models/
+    --model_pickles_dir_path=data/models/ \
+    --embeddings_size=20000 \
+    --target_vectors=300
