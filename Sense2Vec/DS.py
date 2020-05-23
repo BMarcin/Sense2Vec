@@ -10,7 +10,7 @@ nlp = spacy.load("en_core_web_sm")
 
 
 class DS(Dataset):
-    def __init__(self, file_path, window_size):
+    def __init__(self, file_path, window_size, token2idx=None, tokens=None):
         nlp.tokenizer = create_custom_tokenizer(nlp)
 
         self.tokens = []
@@ -21,23 +21,29 @@ class DS(Dataset):
         assert window_size % 2 == 1, "window_size must be odd"
         self.window_size = window_size
 
-        ' flattening the file to single list '
-        for doc in tqdm(nlp.pipe(
-                open(file_path),
-                disable=["ner"],
-                batch_size=20000,
-                n_process=16
-        ), desc='Preprocessing'):
-            for token in doc:
-                if token.text != "\n":
-                    self.tokens.append(token.text.lower())
+        if token2idx is not None:
+            self.token2idx = token2idx
+        else:
+            ' flattening the file to single list '
+            for doc in tqdm(nlp.pipe(
+                    open(file_path),
+                    disable=["ner"],
+                    batch_size=20000,
+                    n_process=16
+            ), desc='Preprocessing'):
+                for token in doc:
+                    if token.text != "\n":
+                        self.tokens.append(token.text.lower())
 
-        ' token2idx '
-        for token in tqdm(set(self.tokens), desc="Building token2idx"):
-            self.token2idx[token] = len(self.token2idx)
+            ' token2idx '
+            for token in tqdm(set(self.tokens), desc="Building token2idx"):
+                self.token2idx[token] = len(self.token2idx)
 
-        ' fix begging of tokens list '
-        self.tokens = ['<end>' for _ in range(int(self.window_size/2))] + self.tokens
+        if tokens is not None:
+            self.tokens = tokens
+        else:
+            ' fix begging of tokens list '
+            self.tokens = ['<end>' for _ in range(int(self.window_size/2))] + self.tokens
 
         ' build dataset '
         progress = tqdm(total=len(self.tokens), desc='Building dataset')
