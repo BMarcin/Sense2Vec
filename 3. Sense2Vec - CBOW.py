@@ -131,11 +131,15 @@ if __name__ == '__main__':
 
     assert seq_len % 2 == 1, 'Seq len has to be odd number'
 
-    if os.path.exists(options.dataset_pickle_path):
+    if os.path.isfile(options.dataset_pickle_path):
+        print("Dataset exists")
         ds = torch.load(options.dataset_pickle_path)
     else:
-        ds = DS(options.input_corpus, 15)
-        torch.save(DS, options.dataset_pickle_path)
+        ds = DS(options.input_corpus, options.seq_len)
+        torch.save(ds.token2idx,"data/models/ds_token2idx.pth")
+        torch.save(ds.tokens, "data/models/ds_tokens.pth")
+
+    print("DS unique values", len(ds.token2idx))
 
     DL = DataLoader(dataset=ds, batch_size=bs, num_workers=4)
 

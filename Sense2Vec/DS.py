@@ -25,8 +25,8 @@ class DS(Dataset):
         for doc in tqdm(nlp.pipe(
                 open(file_path),
                 disable=["ner"],
-                batch_size=100,
-                n_process=1
+                batch_size=20000,
+                n_process=16
         ), desc='Preprocessing'):
             for token in doc:
                 if token.text != "\n":
