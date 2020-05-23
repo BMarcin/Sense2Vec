@@ -138,12 +138,12 @@ if __name__ == '__main__':
             options.input_corpus,
             options.seq_len,
             tokens=torch.load(os.path.join(options.dataset_pickle_path, "ds_tokens.pth")),
-            token2idx=os.path.join(options.dataset_pickle_path, "ds_token2idx.pth")
+            token2idx=torch.load(os.path.join(options.dataset_pickle_path, "ds_token2idx.pth"))
         )
     else:
         ds = DS(options.input_corpus, options.seq_len)
-        torch.save(ds.token2idx, "data/models/ds_token2idx.pth")
-        torch.save(ds.tokens, "data/models/ds_tokens.pth")
+        torch.save(ds.token2idx, os.path.join(options.dataset_pickle_path, "ds_token2idx.pth"))
+        torch.save(ds.tokens, os.path.join(options.dataset_pickle_path, "ds_tokens.pth"))
 
     print("DS unique values", len(ds.token2idx))
 
