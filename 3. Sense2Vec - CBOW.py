@@ -157,7 +157,8 @@ if __name__ == '__main__':
     model = Sense2VecCBOW(
         len(ds.token2idx),
         options.embeddings_size,
-        options.target_vectors
+        options.target_vectors,
+        options.seq_len
     ).to(device)
 
     criterion = nn.CrossEntropyLoss()

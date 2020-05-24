@@ -4,7 +4,7 @@ import torch.functional as F
 
 
 class Sense2VecCBOW(nn.Module):
-    def __init__(self, vocab_size, embedding_size, vectors, ):
+    def __init__(self, vocab_size, embedding_size, vectors, sequence_length):
         super(Sense2VecCBOW, self).__init__()
 
         self.vocab_size = vocab_size
@@ -12,7 +12,7 @@ class Sense2VecCBOW(nn.Module):
         self.vectors = vectors
 
         self.embeddings = nn.Embedding(vocab_size, embedding_size)
-        self.fc_in = nn.Linear(embedding_size, vectors)
+        self.fc_in = nn.Linear(embedding_size * (sequence_length - 1), vectors)
         self.fc_out = nn.Linear(vectors, vocab_size)
 
     def init_weights(self):
@@ -24,8 +24,8 @@ class Sense2VecCBOW(nn.Module):
         return self.fc_out.weight.cpu().detach().tolist()
 
     def forward(self, x):
-        x = torch.sum(self.embeddings(x), dim=1)
-        x = self.fc_in(x)
+        x = self.embeddings(x)
+        x = self.fc_in(x.reshape(len(x), -1))
         x = torch.relu(x)
         x = self.fc_out(x)
         return x
