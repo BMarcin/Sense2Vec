@@ -1,36 +1,67 @@
 import os
 import json
+from optparse import OptionParser
+
 import torch
-import torch.nn as nn
-from torch import optim
-from Sense2Vec.DS2 import DS2 as DS
-import tqdm
-from Sense2Vec.Sense2VecRNN import Sense2VecRRN
+from tqdm import tqdm
 
-device = torch.device("cpu")
-bs = 32
-seq_len = 10
+from Sense2Vec.Sense2VecCBOW import Sense2VecCBOW
 
-ds = DS(
-    os.path.join("data", "tagged_data_big", "corpus_combined.txt"),
-    bs,
-    seq_len,
-    device
-)
-DL = ds.build_iterator()
+if __name__ == '__main__':
+    parser = OptionParser()
 
-model = Sense2VecRRN(ds.bptt_len, len(ds.TEXT.vocab)).to(device)
-model = torch.load(os.path.join("data", "models", "model_bidirectional_2.pth"), map_location=device)
+    parser.add_option(
+        "--model_pickle_path",
+        dest="model_pickle_path",
+        help="Path to saved model",
+        metavar="FILE"
+    )
 
-weights = model.lin.weight.detach().tolist()
+    parser.add_option(
+        "--embeddings_size",
+        dest="embeddings_size",
+        help="Embedding vector size",
+        type=int
+    )
 
-sense2vec = {}
+    parser.add_option(
+        "--target_vectors",
+        dest="target_vectors",
+        help="Target vector size for each token",
+        type=int
+    )
 
-# print(ds.TEXT.vocab.stoi.keys())
-keys = ds.TEXT.vocab.stoi.keys()
+    parser.add_option(
+        "--dataset_pickle_path",
+        dest="dataset_pickle_path",
+        help="Path to save pickled dataset",
+        metavar="FILE"
+    )
 
-for token, weight in zip(keys, weights):
-    sense2vec[token] = weight
-#
-with open(os.path.join("data", "results", "bidir.json"), 'w', encoding="utf8") as f:
-    json.dump(sense2vec, f, indent=1)
+    parser.add_option(
+        "--output_file_path",
+        dest="output_file_path",
+        help="Path to target JSON file",
+        metavar="FILE"
+    )
+
+    options, args = parser.parse_args()
+
+    token2idx = torch.load(os.path.join(options.dataset_pickle_path, "ds_token2idx.pth"))
+    device = torch.device("cpu")
+    model = Sense2VecCBOW(
+        len(token2idx),
+        options.embeddings_size,
+        options.target_vectors
+    ).to(device)
+
+    model.load_state_dict(torch.load(options.model_pickle_path))
+    weights = model.get_weights()
+
+    sense2vec = {}
+
+    for token, weight in tqdm(zip(list(token2idx.keys()), weights), total=len(weights)):
+        sense2vec[token] = weight
+
+    with open(options.output_file_path, 'w', encoding="utf8") as f:
+        json.dump(sense2vec, f, indent=1)

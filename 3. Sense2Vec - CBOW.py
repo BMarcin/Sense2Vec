@@ -12,13 +12,13 @@ from Sense2Vec.DS import DS
 from Sense2Vec.Sense2VecCBOW import Sense2VecCBOW
 
 
-def train(epochs, criterion, optimizer, model, dataloader, savepath, device):
+def train(epochs, criterion, optimizer, model, dataloader, savepath, device, save_each=None):
     for epoch in range(epochs):
         t_batch = tqdm(dataloader, leave=False)
 
         epoch_loss = []
 
-        for batch in t_batch:
+        for i, batch in enumerate(t_batch):
             x = batch[0].long().to(device)
             y = batch[1].long().to(device)
 
@@ -34,6 +34,11 @@ def train(epochs, criterion, optimizer, model, dataloader, savepath, device):
             epoch_loss.append(single_loss_value)
 
             t_batch.set_description("Loss: {:.8f}".format(np.mean(epoch_loss[-1000:])))
+
+            if save_each:
+                if i % save_each == 0 and i != 0:
+                    torch.save(model.state_dict(),
+                               os.path.join(savepath, "model_cbow_step_{}_epoch_{}.pth".format(i, epoch + 1)))
         t_batch.close()
 
         torch.save(model.state_dict(), os.path.join(savepath, "model_cbow_{}.pth".format(epoch + 1)))
@@ -147,7 +152,7 @@ if __name__ == '__main__':
 
     print("DS unique values", len(ds.token2idx))
 
-    DL = DataLoader(dataset=ds, batch_size=bs, num_workers=4)
+    DL = DataLoader(dataset=ds, batch_size=bs, num_workers=6)
 
     model = Sense2VecCBOW(
         len(ds.token2idx),
@@ -165,5 +170,6 @@ if __name__ == '__main__':
         model,
         DL,
         options.model_pickles_dir_path,
-        device
+        device,
+        save_each=10000
     )
