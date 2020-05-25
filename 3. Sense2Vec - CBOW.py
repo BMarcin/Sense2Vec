@@ -172,5 +172,5 @@ if __name__ == '__main__':
         DL,
         options.model_pickles_dir_path,
         device,
-        save_each=10000
+        save_each=40000
     )
