@@ -26,6 +26,6 @@ class Sense2VecCBOW(nn.Module):
     def forward(self, x):
         x = self.embeddings(x)
         x = self.fc_in(x.reshape(len(x), -1))
-        x = torch.relu(x)
+        #x = torch.relu(x)
         x = self.fc_out(x)
         return x

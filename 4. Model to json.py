@@ -52,7 +52,8 @@ if __name__ == '__main__':
     model = Sense2VecCBOW(
         len(token2idx),
         options.embeddings_size,
-        options.target_vectors
+        options.target_vectors,
+        15
     ).to(device)
 
     model.load_state_dict(torch.load(options.model_pickle_path))

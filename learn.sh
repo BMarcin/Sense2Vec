@@ -1,11 +1,11 @@
 export CUDA_VISIBLE_DEVICES=3
 python '3. Sense2Vec - CBOW.py' --lr=3e-3 \
-    --bs=3 \
+    --bs=6000 \
     --seq_len=15 \
-    --epochs=10 \
+    --epochs=20 \
     --device=cuda \
-    --input_corpus=data/corpus.txt \
+    --input_corpus=data/corpus_wiki103.txt \
     --dataset_pickle_path=data/models/ \
     --model_pickles_dir_path=data/models/ \
-    --embeddings_size=500 \
-    --target_vectors=300
+    --embeddings_size=150 \
+    --target_vectors=100
