@@ -9,6 +9,11 @@ import os
 import re
 from optparse import OptionParser
 
+import logging
+from datetime import datetime
+
+from MordinezNLP.preprocessing.Basic import BasicProcessor
+
 nltk.download('stopwords')
 nltk.download('punkt')
 stops = set(stopwords.words('english'))
@@ -20,51 +25,12 @@ def get_dataset_values_in_list(input_path):
     Function takes test and train dataset files and process it to list
     :return: list containing train and test data
     """
+    logging.info("Starting reading files...")
+
     data_test = pd.read_csv(os.path.join(input_path, 'test.csv'), header=None)[0].tolist()
     data_train = pd.read_csv(os.path.join(input_path, 'train.csv'), header=None)[0].tolist()
 
     return data_test + data_train
-
-
-def plot_most_common_words(data_list, n=30):
-    """
-    Plot a chart of most common tokens in dataset
-    :param data_list: datalist from get_dataset_values_in_list function
-    :param n: how many tokens to plot
-    :return:
-    """
-    tokens_counter = Counter()
-
-    for i, item in enumerate(tqdm(data_list, desc='Processing data to plot')):
-        for sentence in nltk.sent_tokenize(item):
-            for token in nltk.word_tokenize(sentence):
-                tokens_counter[token.lower()] += 1
-
-    plt.bar(dict(tokens_counter.most_common(n)).keys(), dict(tokens_counter.most_common(n)).values())
-    plt.xticks(rotation=90)
-    plt.title("Top words")
-    plt.show()
-
-
-def plot_most_common_without_stop_words(data_list, n=30):
-    """
-    Plot a chart of most common tokens (tokens that are not a stopwords) in dataset
-    :param data_list: data_list: datalist from get_dataset_values_in_list function
-    :param n: how many tokens to plot
-    :return:
-    """
-    tokens_counter = Counter()
-
-    for i, item in enumerate(tqdm(data_list, desc='Processing data to plot')):
-        for sentence in nltk.sent_tokenize(item):
-            for token in nltk.word_tokenize(sentence):
-                if token.lower() not in stops:
-                    tokens_counter[token.lower()] += 1
-
-    plt.bar(dict(tokens_counter.most_common(n)).keys(), dict(tokens_counter.most_common(n)).values())
-    plt.xticks(rotation=90)
-    plt.title("Top words")
-    plt.show()
 
 
 def preprocess_text(input_data_list, output_text_file_path):
@@ -78,50 +44,29 @@ def preprocess_text(input_data_list, output_text_file_path):
     :return:
     """
     title_regex = re.compile("((= )+.*(= )+)\s+")
-    space_regex = re.compile("(\s{2,})")
-    date_regex = re.compile(
-        "((\d{4}s)|(\d{2,4}\s–\s\d{2,4})|(\d{1,2} [A-Z][a-z]+ \d{2,4})|(((January)|(February)|(March)|(April)|(May)|(June)|(July)|(October)|(September)|(August)|(November)|(December))\s+\d{1,4})|(\d{1,4}\s+((January)|(February)|(March)|(April)|(May)|(June)|(July)|(October)|(September)|(August)|(November)|(December))))")
-    number_regex = re.compile("((\d{2,4}(st|nd|rd|th)))")
-    none_regex = re.compile("((\(.*\) )|(\[.*\] )|(@.@)|(\d+ – \d+)|( Source : (\n .+)+))")
-    digits_regex = re.compile("(\d+ )")
-    quote_regex = re.compile('(("[a-zA-Z0-9\' ]+"))')
-    limit_regex = re.compile("([^a-zA-Z0-9,\.<>' ])")
-    space_before_regex = re.compile("^(\s)")
-    dot_regex = re.compile("\s+\.")
-    com_regex = re.compile("\s+,")
-    comm_regex = re.compile(",+")
-    multi_dot_regex = re.compile("\.+")
-    multi_unk_regex = re.compile("(<unk>[ ]*){2,}")
+    none_regex = re.compile("( Source : (\n .+)+)")
+    bp = BasicProcessor()
+
+    logging.info("Processing text lists")
 
     with open(output_text_file_path, "w", encoding="utf8") as f:
-        for i, item in enumerate(tqdm(input_data_list, desc='Processing input')):
-            regexed = re.sub(title_regex, "", item)
-            regexed = re.sub(space_regex, " ", regexed)
-            #     regexed = regexed.replace("  ", " ")
-            regexed = re.sub(date_regex, "<date>", regexed)
-            regexed = re.sub(number_regex, "<number>", regexed)
-            regexed = re.sub(quote_regex, "<quote>", regexed)
-            regexed = re.sub(none_regex, "", regexed)
-            regexed = re.sub(digits_regex, "<number> ", regexed)
-            regexed = re.sub(limit_regex, "", regexed)
-            regexed = re.sub(dot_regex, ".", regexed)
-            regexed = re.sub(com_regex, ",", regexed)
-            regexed = re.sub(comm_regex, ",", regexed)
-            regexed = regexed.replace(",.", ".")
-            regexed = regexed.replace(" 's", "'s")
-            regexed = regexed.replace(" 't", "'t")
-            regexed = regexed.replace("' ", "'")
-            regexed = re.sub(multi_dot_regex, ".", regexed)
-            regexed = re.sub(multi_unk_regex, "<unk> ", regexed)
-            regexed = re.sub(space_before_regex, "", regexed)
-            regexed = re.sub(space_regex, " ", regexed)
+        tokenized_items = bp.process(input_data_list, pre_rules=[
+            lambda x: re.sub(title_regex, "", x),
+            lambda x: re.sub(none_regex, "", x)
+        ])
 
-            regexed = regexed.replace("<unk>", "<unknown>")
+        logging.info("Saving processed texts to file")
 
-            f.write(regexed + "\n")
+        for item in tqdm(tokenized_items, desc='Saving file'):
+            f.write(item + "\n")
 
 
 if __name__ == '__main__':
+    log_file_name = 'logs/1. Wiki_103_preprocessing-{}.log'.format(datetime.now().strftime("%d-%m-%Y %H-%M-%S"))
+    logging.basicConfig(filename=log_file_name, filemode='a',
+                        format='%(asctime)s - %(levelname)s - %(message)s',
+                        datefmt='%d-%b-%y %H:%M:%S %p', level=logging.DEBUG)
+
     parser = OptionParser()
 
     parser.add_option(
@@ -142,5 +87,11 @@ if __name__ == '__main__':
 
     options, args = parser.parse_args()
 
+    logging.info("Input dir path set to: {}".format(options.input_dir_path))
+    logging.info("Output file path set to: {}".format(options.output_file_path))
+
     data = get_dataset_values_in_list(options.input_dir_path)
     preprocess_text(data, options.output_file_path)
+
+    logging.info("Done. Log is available under: {}".format(os.path.abspath(log_file_name)))
+    print("Done. Log is available under: {}".format(os.path.abspath(log_file_name)))

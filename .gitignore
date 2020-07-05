@@ -1,1 +1,16 @@
 .idea
+**/__pycache__/**
+data/preprocessed/blogs*
+data/preprocessed/commoncrawl*
+data/preprocessed/wikitext-2.txt
+data/preprocessed/wikitext-103.txt
+logs/1.*
+logs/2.*
+logs/3.*
+logs/Analyze*
+blogs.xlsx
+commoncrawl.xlsx
+results.xlsx
+wikitext-2.xlsx
+wikitext-103.xlsx
+test.py

@@ -68,7 +68,7 @@ class DS(Dataset):
         half = int(self.window_size / 2)
         ins = part[0:half] + part[half + 1:]
         outs = part[half]
-        return (ins, outs)
+        return ins, outs
 
     def __len__(self):
         return len(self.dataset)
