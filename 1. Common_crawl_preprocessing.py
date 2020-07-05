@@ -53,6 +53,7 @@ def preprocess_text(input_data_list, output_text_file_path):
             for item in tqdm(tokenized_items[line_number:line_number + 10000],
                              desc='Saving file {}'.format(output_text_file_path + "-" + str(file_counter) + ".txt")):
                 f.write(item + "\n")
+            file_counter += 1
 
 
 def get_text_selectolax(html):
