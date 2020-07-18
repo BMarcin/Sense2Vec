@@ -1,14 +1,12 @@
 import os
 from datetime import datetime
 import re
+from glob import glob
 from optparse import OptionParser
 
-from comcrawl import IndexClient
-import pandas as pd
-
-from selectolax.parser import HTMLParser
 from tqdm import tqdm
 
+from MordinezNLP.downloaders.CommonCrawlDownloader import CommonCrawlDownloader
 from MordinezNLP.preprocessing.Basic import BasicProcessor
 
 import logging
@@ -45,31 +43,15 @@ def preprocess_text(input_data_list, output_text_file_path):
     ])
 
     file_counter = 0
-    for line_number in range(0, len(input_data_list), 10000):
+    for line_number in range(0, len(input_data_list), 1000):
         with open(output_text_file_path + "-" + str(file_counter) + ".txt", "w", encoding="utf8") as f:
             logging.info(
                 "Saving processed texts to file: {}".format(output_text_file_path + "-" + str(file_counter) + ".txt"))
 
-            for item in tqdm(tokenized_items[line_number:line_number + 10000],
+            for item in tqdm(tokenized_items[line_number:line_number + 1000],
                              desc='Saving file {}'.format(output_text_file_path + "-" + str(file_counter) + ".txt")):
                 f.write(item + "\n")
             file_counter += 1
-
-
-def get_text_selectolax(html):
-    ## based on https://rushter.com/blog/python-fast-html-parser/
-    tree = HTMLParser(html)
-
-    if tree.body is None:
-        return None
-
-    for tag in tree.css('script'):
-        tag.decompose()
-    for tag in tree.css('style'):
-        tag.decompose()
-
-    text = tree.body.text(separator='\n')
-    return text
 
 
 if __name__ == '__main__':
@@ -88,10 +70,10 @@ if __name__ == '__main__':
     )
 
     parser.add_option(
-        "--threads",
-        dest="threads",
+        "--common_crawl_dir_path",
+        dest="common_crawl_dir_path",
         help="How many threads You want to download with",
-        type=int
+        metavar="PATH"
     )
 
     parser.add_option(
@@ -107,27 +89,19 @@ if __name__ == '__main__':
 
     to_write = []
 
-    for search in options.search_string.split(","):
-        try:
-            client = IndexClient()
-            print("Searching for {}".format(search))
-            logging.info("Searching for {}".format(search))
-            client.search(search)
+    ' download data '
+    ccd = CommonCrawlDownloader(
+        options.search_string.split(","),
+        options.common_crawl_dir_path
+    )
 
-            client.results = (
-                pd.DataFrame(client.results).sort_values(by="timestamp").drop_duplicates("urlkey", keep="last").to_dict(
-                    "records")
-            )
-
-            client.download(threads=options.threads)
-
-            logging.info("Processing data")
-            for entity in tqdm(client.results, "Processing data"):
-                if 'warc' in entity['filename']:
-                    parsed_text = get_text_selectolax(entity['html'])
-                    to_write.append(" ".join([line for line in parsed_text.split("\n") if len(line) > 50]))
-        except Exception as e:
-            print("Error with {}, {}".format(search, str(e)))
+    for file in glob(options.common_crawl_dir_path + "/*.txt"):
+        current_lines = []
+        with open(file, encoding="utf8") as f:
+            for line in f.readlines():
+                if len(line) > 50:
+                    current_lines.append(line)
+        to_write.append("\n".join(current_lines))
 
     preprocess_text(to_write, options.output_file_prefix)
 
