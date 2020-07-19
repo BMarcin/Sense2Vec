@@ -1,3 +1,5 @@
+from collections import Counter
+
 import numpy as np
 import torch
 from torch.utils.data import Dataset
@@ -10,13 +12,14 @@ nlp = spacy.load("en_core_web_sm")
 
 
 class DS(Dataset):
-    def __init__(self, file_path, window_size, token2idx=None, tokens=None):
+    def __init__(self, file_path, window_size, minimal_word_occureces=3,token2idx=None, tokens=None):
         nlp.tokenizer = create_custom_tokenizer(nlp)
 
         self.tokens = []
         self.token2idx = {
             '<end>': 0
         }
+        self.tokens_counter = Counter()
 
         assert window_size % 2 == 1, "window_size must be odd"
         self.window_size = window_size
@@ -30,10 +33,29 @@ class DS(Dataset):
                     disable=["ner"],
                     batch_size=20000,
                     n_process=16
-            ), desc='Preprocessing'):
+            ), desc='Counting tokens'):
                 for token in doc:
                     if token.text != "\n":
-                        self.tokens.append(token.text.lower())
+                        # self.tokens.append(token.text.lower())
+                        self.tokens_counter[token.text.lower()] += 1
+
+            for doc in tqdm(nlp.pipe(
+                    open(file_path),
+                    disable=["ner"],
+                    batch_size=20000,
+                    n_process=16
+            ), desc='Removing wrong sentences'):
+                for sentence in doc.sents:
+                    local_tokens = []
+                    is_right = True
+                    for token in sentence:
+                        if self.tokens_counter[token] >= minimal_word_occureces:
+                            local_tokens.append(token.text.lower())
+                        else:
+                            is_right = False
+                            break
+                    if is_right:
+                        self.tokens += local_tokens
 
             ' token2idx '
             for token in tqdm(set(self.tokens), desc="Building token2idx"):
