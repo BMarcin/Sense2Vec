@@ -12,7 +12,7 @@ nlp = spacy.load("en_core_web_sm")
 
 
 class DS(Dataset):
-    def __init__(self, file_path, window_size, minimal_word_occureces=3,token2idx=None, tokens=None):
+    def __init__(self, file_path, window_size, minimal_word_occurences=3, token2idx=None, tokens=None):
         nlp.tokenizer = create_custom_tokenizer(nlp)
 
         self.tokens = []
@@ -49,7 +49,7 @@ class DS(Dataset):
                     local_tokens = []
                     is_right = True
                     for token in sentence:
-                        if self.tokens_counter[token] >= minimal_word_occureces:
+                        if self.tokens_counter[token.text.lower()] >= minimal_word_occurences:
                             local_tokens.append(token.text.lower())
                         else:
                             is_right = False

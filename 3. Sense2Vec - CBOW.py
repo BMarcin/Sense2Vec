@@ -178,19 +178,20 @@ if __name__ == '__main__':
             options.seq_len,
             tokens=torch.load(
                 os.path.join(options.dataset_pickle_path, "ds_tokens__seq_len_{}__min_token_occ_{}.pth".format(
-                    str(seq_len), str(minimal_token_occurences)))),
+                    str(seq_len), int(minimal_token_occurences)))),
             token2idx=torch.load(
                 os.path.join(options.dataset_pickle_path, "ds_token2idx__seq_len_{}__min_token_occ_{}.pth".format(
-                    str(seq_len), str(minimal_token_occurences))))
+                    str(seq_len), int(minimal_token_occurences)))),
+            minimal_word_occurences=minimal_token_occurences
         )
     else:
-        ds = DS(options.input_corpus, options.seq_len, minimal_token_occurences)
+        ds = DS(options.input_corpus, options.seq_len, minimal_word_occurences=minimal_token_occurences)
         torch.save(ds.token2idx,
                    os.path.join(options.dataset_pickle_path, "ds_token2idx__seq_len_{}__min_token_occ_{}.pth".format(
-                       str(seq_len, minimal_token_occurences))))
+                       str(seq_len), int(minimal_token_occurences))))
         torch.save(ds.tokens,
                    os.path.join(options.dataset_pickle_path, "ds_tokens__seq_len_{}__min_token_occ_{}.pth".format(
-                       str(seq_len, minimal_token_occurences))))
+                       str(seq_len), int(minimal_token_occurences))))
 
     with mlflow.start_run():
         mlflow.log_param('lr', lr)
