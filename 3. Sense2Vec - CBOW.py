@@ -146,6 +146,12 @@ if __name__ == '__main__':
         type=str
     )
 
+    parser.add_option(
+        "--minimal_token_occurences",
+        dest="minimal_token_occurences",
+        type=int
+    )
+
     options, args = parser.parse_args()
 
     mlflow.set_tracking_uri(options.mlflow_host)
@@ -156,27 +162,34 @@ if __name__ == '__main__':
     seq_len = options.seq_len
     epochs = options.epochs
     device = torch.device(options.device)
+    minimal_token_occurences = options.minimal_token_occurences
 
     assert seq_len % 2 == 1, 'Seq len has to be odd number'
 
     if os.path.exists(os.path.join(options.dataset_pickle_path,
-                                   "ds_token2idx__seq_len_{}.pth".format(str(seq_len)))) and os.path.exists(
-        os.path.join(options.dataset_pickle_path, "ds_tokens__seq_len_{}.pth".format(str(seq_len)))):
+                                   "ds_token2idx__seq_len_{}__min_token_occ_{}.pth".format(
+                                       str(seq_len, minimal_token_occurences)))) and os.path.exists(
+        os.path.join(options.dataset_pickle_path,
+                     "ds_tokens__seq_len_{}__min_token_occ_{}.pth".format(str(seq_len, minimal_token_occurences)))):
         print("Dataset exists")
         ds = DS(
             options.input_corpus,
             options.seq_len,
             tokens=torch.load(
-                os.path.join(options.dataset_pickle_path, "ds_tokens__seq_len_{}.pth".format(str(seq_len)))),
+                os.path.join(options.dataset_pickle_path, "ds_tokens__seq_len_{}__min_token_occ_{}.pth".format(
+                    str(seq_len, minimal_token_occurences)))),
             token2idx=torch.load(
-                os.path.join(options.dataset_pickle_path, "ds_token2idx__seq_len_{}.pth".format(str(seq_len))))
+                os.path.join(options.dataset_pickle_path, "ds_token2idx__seq_len_{}__min_token_occ_{}.pth".format(
+                    str(seq_len, minimal_token_occurences))))
         )
     else:
-        ds = DS(options.input_corpus, options.seq_len)
+        ds = DS(options.input_corpus, options.seq_len, minimal_token_occurences)
         torch.save(ds.token2idx,
-                   os.path.join(options.dataset_pickle_path, "ds_token2idx__seq_len_{}.pth".format(str(seq_len))))
+                   os.path.join(options.dataset_pickle_path, "ds_token2idx__seq_len_{}__min_token_occ_{}.pth".format(
+                       str(seq_len, minimal_token_occurences))))
         torch.save(ds.tokens,
-                   os.path.join(options.dataset_pickle_path, "ds_tokens__seq_len_{}.pth".format(str(seq_len))))
+                   os.path.join(options.dataset_pickle_path, "ds_tokens__seq_len_{}__min_token_occ_{}.pth".format(
+                       str(seq_len, minimal_token_occurences))))
 
     with mlflow.start_run():
         mlflow.log_param('lr', lr)
