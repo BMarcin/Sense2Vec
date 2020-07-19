@@ -1,6 +1,7 @@
 import os
 from optparse import OptionParser
 
+import mlflow
 import torch
 import torch.nn as nn
 from torch import optim
@@ -35,14 +36,21 @@ def train(epochs, criterion, optimizer, model, dataloader, savepath, device, sav
 
             t_batch.set_description("Loss: {:.8f}".format(np.mean(epoch_loss[-1000:])))
 
+            mlflow.log_metric('bs_loss_mean', np.mean(epoch_loss[-1000:]), step=epoch + 1)
+
             if save_each:
                 if i % save_each == 0 and i != 0:
                     torch.save(model.state_dict(),
-                               os.path.join(savepath, "model_cbow_step_{}_epoch_{}.pth".format(i, epoch + 1)))
+                               os.path.join(savepath, mlflow.active_run().info.run_id,
+                                            "model_cbow_step_{}_epoch_{}.pth".format(i, epoch + 1)))
         t_batch.close()
+        mlflow.log_metric('epoch_loss_mean', np.mean(epoch_loss), step=epoch + 1)
 
-        torch.save(model.state_dict(), os.path.join(savepath, "model_cbow_{}.pth".format(epoch + 1)))
+        torch.save(model.state_dict(),
+                   os.path.join(savepath, mlflow.active_run().info.run_id, "model_cbow_epoch{}.pth".format(epoch + 1)))
         print("Epoch {}/{}, Loss {:.8f}".format(epoch + 1, epochs, single_loss_value))
+
+    mlflow.log_artifact(os.path.abspath(os.path.join(savepath, mlflow.active_run().info.run_id)))
 
 
 if __name__ == '__main__':
@@ -126,7 +134,22 @@ if __name__ == '__main__':
         type=int
     )
 
+    parser.add_option(
+        "--mlflow_host",
+        dest="mlflow_host",
+        type=str
+    )
+
+    parser.add_option(
+        "--mlflow_experiment",
+        dest="mlflow_experiment",
+        type=str
+    )
+
     options, args = parser.parse_args()
+
+    mlflow.set_tracking_uri(options.mlflow_host)
+    mlflow.set_experiment(options.mlflow_experiment)
 
     lr = options.lr
     bs = options.bs
@@ -136,41 +159,53 @@ if __name__ == '__main__':
 
     assert seq_len % 2 == 1, 'Seq len has to be odd number'
 
-    if os.path.exists(os.path.join(options.dataset_pickle_path, "ds_token2idx.pth")) and os.path.exists(
-            os.path.join(options.dataset_pickle_path, "ds_tokens.pth")):
+    if os.path.exists(os.path.join(options.dataset_pickle_path,
+                                   "ds_token2idx__seq_len_{}.pth".format(str(seq_len)))) and os.path.exists(
+        os.path.join(options.dataset_pickle_path, "ds_tokens__seq_len_{}.pth".format(str(seq_len)))):
         print("Dataset exists")
         ds = DS(
             options.input_corpus,
             options.seq_len,
-            tokens=torch.load(os.path.join(options.dataset_pickle_path, "ds_tokens.pth")),
-            token2idx=torch.load(os.path.join(options.dataset_pickle_path, "ds_token2idx.pth"))
+            tokens=torch.load(
+                os.path.join(options.dataset_pickle_path, "ds_tokens__seq_len_{}.pth".format(str(seq_len)))),
+            token2idx=torch.load(
+                os.path.join(options.dataset_pickle_path, "ds_token2idx__seq_len_{}.pth".format(str(seq_len))))
         )
     else:
         ds = DS(options.input_corpus, options.seq_len)
-        torch.save(ds.token2idx, os.path.join(options.dataset_pickle_path, "ds_token2idx.pth"))
-        torch.save(ds.tokens, os.path.join(options.dataset_pickle_path, "ds_tokens.pth"))
+        torch.save(ds.token2idx,
+                   os.path.join(options.dataset_pickle_path, "ds_token2idx__seq_len_{}.pth".format(str(seq_len))))
+        torch.save(ds.tokens,
+                   os.path.join(options.dataset_pickle_path, "ds_tokens__seq_len_{}.pth".format(str(seq_len))))
 
-    print("DS unique values", len(ds.token2idx))
+    with mlflow.start_run():
+        mlflow.log_param('lr', lr)
+        mlflow.log_param('bs', bs)
+        mlflow.log_param('seq_len', seq_len)
+        mlflow.log_param('epochs', epochs)
 
-    DL = DataLoader(dataset=ds, batch_size=bs, num_workers=6)
+        print("DS unique values", len(ds.token2idx))
 
-    model = Sense2VecCBOW(
-        len(ds.token2idx),
-        options.embeddings_size,
-        options.target_vectors,
-        options.seq_len
-    ).to(device)
+        DL = DataLoader(dataset=ds, batch_size=bs, num_workers=6)
+        os.mkdir(os.path.join(options.model_pickles_dir_path, mlflow.active_run().info.run_id))
 
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=lr)
+        model = Sense2VecCBOW(
+            len(ds.token2idx),
+            options.embeddings_size,
+            options.target_vectors,
+            options.seq_len
+        ).to(device)
 
-    train(
-        epochs,
-        criterion,
-        optimizer,
-        model,
-        DL,
-        options.model_pickles_dir_path,
-        device,
-        save_each=40000
-    )
+        criterion = nn.CrossEntropyLoss()
+        optimizer = optim.Adam(model.parameters(), lr=lr)
+
+        train(
+            epochs,
+            criterion,
+            optimizer,
+            model,
+            DL,
+            options.model_pickles_dir_path,
+            device,
+            save_each=40000
+        )

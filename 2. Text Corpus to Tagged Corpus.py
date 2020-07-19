@@ -13,7 +13,7 @@ nlp = spacy.load("en_core_web_sm")
 def preprocess_pipeline(input_dir_path, output_file_path, custom_tokenizer_func, threads=4, batch=200):
     logging.info("Reading files")
     file_inputs = [line.replace("\n", "") for file in
-                   tqdm(glob(os.path.join(input_dir_path, "*.txt")), desc="Reading files") for
+                   tqdm(glob(os.path.join(input_dir_path, "wikitext-2.txt")), desc="Reading files") for
                    line in open(file, encoding="utf8").readlines()]
 
     logging.info("Starting Spacy pipeline")
