@@ -1,4 +1,3 @@
-
 import os
 from optparse import OptionParser
 
@@ -37,14 +36,13 @@ def train(epochs, criterion, optimizer, model, dataloader, savepath, device, sav
 
             t_batch.set_description("Loss: {:.8f}".format(np.mean(epoch_loss[-1000:])))
 
-            #mlflow.log_metric('bs_loss_mean', np.mean(epoch_loss[-1000:]), step=epoch + 1)
-
             if save_each:
                 if i % save_each == 0 and i != 0:
                     torch.save(model.state_dict(),
                                os.path.join(savepath, mlflow.active_run().info.run_id,
                                             "model_cbow_step_{}_epoch_{}.pth".format(i, epoch + 1)))
                     mlflow.log_metric('bs_loss_mean', np.mean(epoch_loss[-1000:]), step=epoch + 1)
+
         t_batch.close()
         mlflow.log_metric('epoch_loss_mean', np.mean(epoch_loss), step=epoch + 1)
 
@@ -178,8 +176,8 @@ if __name__ == '__main__':
         ds = DS(
             options.input_corpus,
             options.seq_len,
-            tokens=torch.load(
-                os.path.join(options.dataset_pickle_path, "ds_tokens__seq_len_{}__min_token_occ_{}.pth".format(
+            dataset=torch.load(
+                os.path.join(options.dataset_pickle_path, "ds_dataset__seq_len_{}__min_token_occ_{}.pth".format(
                     str(seq_len), int(minimal_token_occurences)))),
             token2idx=torch.load(
                 os.path.join(options.dataset_pickle_path, "ds_token2idx__seq_len_{}__min_token_occ_{}.pth".format(
@@ -191,8 +189,8 @@ if __name__ == '__main__':
         torch.save(ds.token2idx,
                    os.path.join(options.dataset_pickle_path, "ds_token2idx__seq_len_{}__min_token_occ_{}.pth".format(
                        str(seq_len), int(minimal_token_occurences))))
-        torch.save(ds.tokens,
-                   os.path.join(options.dataset_pickle_path, "ds_tokens__seq_len_{}__min_token_occ_{}.pth".format(
+        torch.save(ds.dataset,
+                   os.path.join(options.dataset_pickle_path, "ds_dataset__seq_len_{}__min_token_occ_{}.pth".format(
                        str(seq_len), int(minimal_token_occurences))))
 
     with mlflow.start_run():
@@ -200,6 +198,7 @@ if __name__ == '__main__':
         mlflow.log_param('bs', bs)
         mlflow.log_param('seq_len', seq_len)
         mlflow.log_param('epochs', epochs)
+        mlflow.log_param('min_occurences', minimal_token_occurences)
 
         print("DS unique values", len(ds.token2idx))
 

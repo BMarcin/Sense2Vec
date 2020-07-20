@@ -1,3 +1,4 @@
+import sys
 from collections import Counter
 
 import numpy as np
@@ -12,7 +13,7 @@ nlp = spacy.load("en_core_web_sm")
 
 
 class DS(Dataset):
-    def __init__(self, file_path, window_size, minimal_word_occurences=3, token2idx=None, tokens=None):
+    def __init__(self, file_path, window_size, minimal_word_occurences=3, token2idx=None, dataset=None):
         nlp.tokenizer = create_custom_tokenizer(nlp)
 
         self.tokens = []
@@ -32,10 +33,10 @@ class DS(Dataset):
                     open(file_path),
                     disable=["ner"],
                     batch_size=20000,
-                    n_process=16
+                    n_process=3
             ), desc='Counting tokens'):
                 for token in doc:
-                    if token.text != "\n":
+                    if token.text.lower() not in ['\t', '\n', ',', '|punct']:
                         # self.tokens.append(token.text.lower())
                         self.tokens_counter[token.text.lower()] += 1
 
@@ -43,34 +44,36 @@ class DS(Dataset):
                     open(file_path),
                     disable=["ner"],
                     batch_size=20000,
-                    n_process=16
+                    n_process=3
             ), desc='Removing wrong sentences'):
                 for sentence in doc.sents:
                     local_tokens = []
-                    is_right = True
                     for token in sentence:
-                        if self.tokens_counter[token.text.lower()] >= minimal_word_occurences:
+                        if token.text.lower() in self.tokens_counter.keys() and \
+                                self.tokens_counter[token.text.lower()] >= minimal_word_occurences:
                             local_tokens.append(token.text.lower())
                         else:
-                            is_right = False
                             break
-                    if is_right:
-                        self.tokens += local_tokens
+                    self.tokens += local_tokens
 
             ' token2idx '
             for token in tqdm(set(self.tokens), desc="Building token2idx"):
                 self.token2idx[token] = len(self.token2idx)
 
-        if tokens is not None:
-            self.tokens = tokens
+        if dataset is not None:
+            self.dataset = dataset
         else:
             ' fix begging of tokens list '
             self.tokens = ['<end>' for _ in range(int(self.window_size/2))] + self.tokens
 
-        ' build dataset '
-        progress = tqdm(total=len(self.tokens), desc='Building dataset')
-        self.dataset = self.process_sequence(self.tokens, lambda x: progress.update(x))
-        progress.close()
+            print("Sample", self.tokens[0:100])
+
+            ' build dataset '
+            progress = tqdm(total=len(self.tokens), desc='Building dataset')
+            self.dataset = self.process_sequence(self.tokens, lambda x: progress.update(x))
+            progress.close()
+
+            del self.tokens
 
     def process_sequence(self, tokenized_sentence, lambda_fn=None):
         parts = []
