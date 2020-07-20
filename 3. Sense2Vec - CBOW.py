@@ -1,3 +1,4 @@
+
 import os
 from optparse import OptionParser
 
@@ -36,13 +37,14 @@ def train(epochs, criterion, optimizer, model, dataloader, savepath, device, sav
 
             t_batch.set_description("Loss: {:.8f}".format(np.mean(epoch_loss[-1000:])))
 
-            mlflow.log_metric('bs_loss_mean', np.mean(epoch_loss[-1000:]), step=epoch + 1)
+            #mlflow.log_metric('bs_loss_mean', np.mean(epoch_loss[-1000:]), step=epoch + 1)
 
             if save_each:
                 if i % save_each == 0 and i != 0:
                     torch.save(model.state_dict(),
                                os.path.join(savepath, mlflow.active_run().info.run_id,
                                             "model_cbow_step_{}_epoch_{}.pth".format(i, epoch + 1)))
+                    mlflow.log_metric('bs_loss_mean', np.mean(epoch_loss[-1000:]), step=epoch + 1)
         t_batch.close()
         mlflow.log_metric('epoch_loss_mean', np.mean(epoch_loss), step=epoch + 1)
 
