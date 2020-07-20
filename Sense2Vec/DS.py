@@ -33,7 +33,7 @@ class DS(Dataset):
                     open(file_path),
                     disable=["ner"],
                     batch_size=20000,
-                    n_process=3
+                    n_process=6
             ), desc='Counting tokens'):
                 for token in doc:
                     if token.text.lower() not in ['\t', '\n', ',', '|punct']:
@@ -44,7 +44,7 @@ class DS(Dataset):
                     open(file_path),
                     disable=["ner"],
                     batch_size=20000,
-                    n_process=3
+                    n_process=6
             ), desc='Removing wrong sentences'):
                 for sentence in doc.sents:
                     local_tokens = []
@@ -64,7 +64,7 @@ class DS(Dataset):
             self.dataset = dataset
         else:
             ' fix begging of tokens list '
-            self.tokens = ['<end>' for _ in range(int(self.window_size/2))] + self.tokens
+            self.tokens = ['<end>' for _ in range(int(self.window_size / 2))] + self.tokens
 
             print("Sample", self.tokens[0:100])
 

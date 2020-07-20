@@ -14,6 +14,9 @@ from Sense2Vec.Sense2VecCBOW import Sense2VecCBOW
 
 
 def train(epochs, criterion, optimizer, model, dataloader, savepath, device, save_each=None):
+    print(len(dataloader))
+    percent_count = int(len(dataloader) / 100)
+    print("percent_count", percent_count)
     for epoch in range(epochs):
         t_batch = tqdm(dataloader, leave=False)
 
@@ -41,7 +44,9 @@ def train(epochs, criterion, optimizer, model, dataloader, savepath, device, sav
                     torch.save(model.state_dict(),
                                os.path.join(savepath, mlflow.active_run().info.run_id,
                                             "model_cbow_step_{}_epoch_{}.pth".format(i, epoch + 1)))
-                    mlflow.log_metric('bs_loss_mean', np.mean(epoch_loss[-1000:]), step=epoch + 1)
+
+            if i % percent_count == 0:
+                mlflow.log_metric('bs_loss_mean', np.mean(epoch_loss[-1000:]), step=epoch + 1)
 
         t_batch.close()
         mlflow.log_metric('epoch_loss_mean', np.mean(epoch_loss), step=epoch + 1)
@@ -170,8 +175,8 @@ if __name__ == '__main__':
                                    "ds_token2idx__seq_len_{}__min_token_occ_{}.pth".format(
                                        str(seq_len), str(minimal_token_occurences)))) and os.path.exists(
         os.path.join(options.dataset_pickle_path,
-                     "ds_tokens__seq_len_{}__min_token_occ_{}.pth".format(str(seq_len),
-                                                                          str(minimal_token_occurences)))):
+                     "ds_dataset__seq_len_{}__min_token_occ_{}.pth".format(str(seq_len),
+                                                                           str(minimal_token_occurences)))):
         print("Dataset exists")
         ds = DS(
             options.input_corpus,
