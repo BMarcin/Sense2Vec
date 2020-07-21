@@ -1,4 +1,5 @@
 import os
+import random
 from optparse import OptionParser
 
 import mlflow
@@ -11,6 +12,9 @@ import numpy as np
 
 from Sense2Vec.DS import DS
 from Sense2Vec.Sense2VecCBOW import Sense2VecCBOW
+
+torch.manual_seed(1010101011)
+random.seed(1010101011)
 
 
 def train(epochs, criterion, optimizer, model, dataloader, savepath, device, save_each=None):
