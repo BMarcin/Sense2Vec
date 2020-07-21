@@ -15,7 +15,7 @@ from Sense2Vec.Sense2VecCBOW import Sense2VecCBOW
 
 def train(epochs, criterion, optimizer, model, dataloader, savepath, device, save_each=None):
     print(len(dataloader))
-    percent_count = int(len(dataloader) / 100)
+    percent_count = int(len(dataloader) / 300)
     print("percent_count", percent_count)
     for epoch in range(epochs):
         t_batch = tqdm(dataloader, leave=False)
@@ -204,6 +204,8 @@ if __name__ == '__main__':
         mlflow.log_param('seq_len', seq_len)
         mlflow.log_param('epochs', epochs)
         mlflow.log_param('min_occurences', minimal_token_occurences)
+        mlflow.log_param('embeddings_size', options.embeddings_size)
+        mlflow.log_param('target_vectors', options.target_vectors)
 
         print("DS unique values", len(ds.token2idx))
 
