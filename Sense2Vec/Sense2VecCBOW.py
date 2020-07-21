@@ -15,10 +15,12 @@ class Sense2VecCBOW(nn.Module):
         self.fc_in = nn.Linear(embedding_size * (sequence_length - 1), vectors)
         self.fc_out = nn.Linear(vectors, vocab_size)
 
+        self.init_weights()
+
     def init_weights(self):
         init_range = 0.1
-        self.lin.weight.data.uniform_(-init_range, init_range)
-        self.rnn.weight.data.uniform_(-init_range, init_range)
+        self.fc_in.weight.data.uniform_(-init_range, init_range)
+        self.fc_out.weight.data.uniform_(-init_range, init_range)
 
     def get_weights(self):
         return self.fc_out.weight.cpu().detach().tolist()
@@ -26,6 +28,6 @@ class Sense2VecCBOW(nn.Module):
     def forward(self, x):
         x = self.embeddings(x)
         x = self.fc_in(x.reshape(len(x), -1))
-        #x = torch.relu(x)
+        # x = torch.relu(x)
         x = self.fc_out(x)
         return x
