@@ -14,9 +14,9 @@ from Sense2Vec.Sense2VecCBOW import Sense2VecCBOW
 
 
 def train(epochs, criterion, optimizer, model, dataloader, savepath, device, save_each=None):
-    print(len(dataloader))
+    print("Experiment ID: {}".format(mlflow.active_run().info.run_id))
     percent_count = int(len(dataloader) / 300)
-    print("percent_count", percent_count)
+    step = 0
     for epoch in range(epochs):
         t_batch = tqdm(dataloader, leave=False)
 
@@ -46,7 +46,8 @@ def train(epochs, criterion, optimizer, model, dataloader, savepath, device, sav
                                             "model_cbow_step_{}_epoch_{}.pth".format(i, epoch + 1)))
 
             if i % percent_count == 0:
-                mlflow.log_metric('bs_loss_mean', np.mean(epoch_loss[-1000:]), step=epoch + 1)
+                mlflow.log_metric('bs_loss_mean', np.mean(epoch_loss[-1000:]), step=step)
+                step += 1
 
         t_batch.close()
         mlflow.log_metric('epoch_loss_mean', np.mean(epoch_loss), step=epoch + 1)
