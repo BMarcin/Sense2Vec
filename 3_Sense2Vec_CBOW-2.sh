@@ -1,12 +1,12 @@
 python '3. Sense2Vec - CBOW.py' \
   --lr=3e-3 \
-  --bs=2000 \
+  --bs=1200 \
   --seq_len=11 \
   --epochs=3 \
   --device=cuda:3 \
   --input_corpus=data/postprocessed/ds_full.txt \
-  --embeddings_size=50 \
-  --target_vectors=500 \
+  --embeddings_size=20 \
+  --target_vectors=200 \
   --mlflow_host=http://192.168.113.181:5000 \
   --mlflow_experiment=Sense2Vec_full_test \
   --model_pickles_dir_path=data/models \
