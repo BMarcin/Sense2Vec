@@ -11,7 +11,7 @@ from tqdm import tqdm
 import numpy as np
 
 from Sense2Vec.DS import DS
-from Sense2Vec.Sense2VecCBOW_RELU import Sense2VecCBOW_RELU
+from Sense2Vec.Sense2VecCBOW import Sense2VecCBOW
 
 torch.manual_seed(1010101011)
 random.seed(1010101011)
@@ -217,7 +217,7 @@ if __name__ == '__main__':
         DL = DataLoader(dataset=ds, batch_size=bs, num_workers=8)
         os.mkdir(os.path.join(options.model_pickles_dir_path, mlflow.active_run().info.run_id))
 
-        model = Sense2VecCBOW_RELU(
+        model = Sense2VecCBOW(
             len(ds.token2idx),
             options.embeddings_size,
             options.target_vectors,
@@ -225,7 +225,7 @@ if __name__ == '__main__':
         ).to(device)
 
         criterion = nn.CrossEntropyLoss()
-        optimizer = optim.Adam(model.parameters(), lr=lr)
+        optimizer = optim.RMSprop(model.parameters(), lr=lr)
 
         train(
             epochs,
