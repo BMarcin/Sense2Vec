@@ -1,4 +1,4 @@
-python '3. Sense2Vec - CBOW.py' \
+python '3. Sense2Vec - CBOW - PROJECTION SUM.py' \
   --lr=3e-3 \
   --bs=2500 \
   --seq_len=5 \
