@@ -36,7 +36,7 @@ class DS(Dataset):
                     n_process=6
             ), desc='Counting tokens'):
                 for token in doc:
-                    if token.text.lower() not in ['\t', '\n', ',', '|punct']:
+                    if token.text.lower() not in ['\t', '\n',]:
                         # self.tokens.append(token.text.lower())
                         self.tokens_counter[token.text.lower()] += 1
 
