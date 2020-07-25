@@ -40,7 +40,7 @@ class DS(Dataset):
             #         batch_size=30000,
             #         n_process=16
             # ), desc='Removing wrong sentences'):
-            for sentence in open(file_path).readlines():
+            for sentence in tqdm(open(file_path).readlines()):
                 sentence = sentence.replace("\n", "").split()
                 local_tokens = []
                 if len(sentence) > self.window_size:
