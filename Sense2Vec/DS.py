@@ -29,16 +29,9 @@ class DS(Dataset):
             self.token2idx = token2idx
         else:
             ' flattening the file to single list '
-            for doc in tqdm(nlp.pipe(
-                    open(file_path),
-                    disable=["ner"],
-                    batch_size=30000,
-                    n_process=16
-            ), desc='Counting tokens'):
-                for token in doc:
-                    if token.text.lower() not in ['\t', '\n',]:
-                        # self.tokens.append(token.text.lower())
-                        self.tokens_counter[token.text.lower()] += 1
+            for token in tqdm(open(file_path).read().split(), desc='Counting tokens'):
+                if token.lower() not in ['\t', '\n']:
+                    self.tokens_counter[token.lower()] += 1
 
             for doc in tqdm(nlp.pipe(
                     open(file_path),
