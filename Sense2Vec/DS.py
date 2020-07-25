@@ -32,8 +32,8 @@ class DS(Dataset):
             for doc in tqdm(nlp.pipe(
                     open(file_path),
                     disable=["ner"],
-                    batch_size=20000,
-                    n_process=6
+                    batch_size=30000,
+                    n_process=16
             ), desc='Counting tokens'):
                 for token in doc:
                     if token.text.lower() not in ['\t', '\n',]:
@@ -43,8 +43,8 @@ class DS(Dataset):
             for doc in tqdm(nlp.pipe(
                     open(file_path),
                     disable=["ner"],
-                    batch_size=20000,
-                    n_process=6
+                    batch_size=30000,
+                    n_process=16
             ), desc='Removing wrong sentences'):
                 for sentence in doc.sents:
                     local_tokens = []
