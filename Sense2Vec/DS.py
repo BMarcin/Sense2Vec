@@ -41,13 +41,14 @@ class DS(Dataset):
             ), desc='Removing wrong sentences'):
                 for sentence in doc.sents:
                     local_tokens = []
-                    for token in sentence:
-                        if token.text.lower() in self.tokens_counter.keys() and \
-                                self.tokens_counter[token.text.lower()] >= minimal_word_occurences:
-                            local_tokens.append(token.text.lower())
-                        else:
-                            break
-                    self.tokens += local_tokens
+                    if len(sentence) > self.window_size:
+                        for token in sentence:
+                            if token.text.lower() in self.tokens_counter.keys() and \
+                                    self.tokens_counter[token.text.lower()] >= minimal_word_occurences:
+                                local_tokens.append(token.text.lower())
+                            else:
+                                break
+                        self.tokens += local_tokens
 
             ' token2idx '
             for token in tqdm(set(self.tokens), desc="Building token2idx"):
