@@ -1,6 +1,7 @@
 import sys
 from collections import Counter
 
+import nltk
 import numpy as np
 import torch
 from torch.utils.data import Dataset
@@ -33,22 +34,23 @@ class DS(Dataset):
                 if token.lower() not in ['\t', '\n']:
                     self.tokens_counter[token.lower()] += 1
 
-            for doc in tqdm(nlp.pipe(
-                    open(file_path),
-                    disable=["ner"],
-                    batch_size=30000,
-                    n_process=16
-            ), desc='Removing wrong sentences'):
-                for sentence in doc.sents:
-                    local_tokens = []
-                    if len(sentence) > self.window_size:
-                        for token in sentence:
-                            if token.text.lower() in self.tokens_counter.keys() and \
-                                    self.tokens_counter[token.text.lower()] >= minimal_word_occurences:
-                                local_tokens.append(token.text.lower())
-                            else:
-                                break
-                        self.tokens += local_tokens
+            # for doc in tqdm(nlp.pipe(
+            #         open(file_path),
+            #         disable=["ner"],
+            #         batch_size=30000,
+            #         n_process=16
+            # ), desc='Removing wrong sentences'):
+            for sentence in open(file_path).readlines():
+                sentence = sentence.replace("\n", "").split()
+                local_tokens = []
+                if len(sentence) > self.window_size:
+                    for token in sentence:
+                        if token.lower() in self.tokens_counter.keys() and \
+                                self.tokens_counter[token.lower()] >= minimal_word_occurences:
+                            local_tokens.append(token.lower())
+                        else:
+                            break
+                    self.tokens += local_tokens
 
             ' token2idx '
             for token in tqdm(set(self.tokens), desc="Building token2idx"):
