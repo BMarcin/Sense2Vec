@@ -1,22 +1,15 @@
 import sys
 from collections import Counter
 
-import nltk
 import numpy as np
-import torch
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
 from Sense2Vec.tokenizer import create_custom_tokenizer
-import spacy
-
-nlp = spacy.load("en_core_web_sm")
 
 
 class DS(Dataset):
     def __init__(self, file_path, window_size, minimal_word_occurences=3, token2idx=None, dataset=None):
-        nlp.tokenizer = create_custom_tokenizer(nlp)
-
         self.tokens = []
         self.token2idx = {
             '<end>': 0
@@ -40,7 +33,7 @@ class DS(Dataset):
             #         batch_size=30000,
             #         n_process=16
             # ), desc='Removing wrong sentences'):
-            for sentence in tqdm(open(file_path).readlines()):
+            for sentence in tqdm(open(file_path).readlines(), desc='Removing wrong sentences'):
                 sentence = sentence.replace("\n", "").split()
                 local_tokens = []
                 if len(sentence) > self.window_size:
