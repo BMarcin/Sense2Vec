@@ -96,7 +96,7 @@ class DS(Dataset):
 
 
 if __name__ == '__main__':
-    DS = DS("../data/corpus_sm.txt", 7)
+    DS = DS("../data/postprocessed/corpus_sm.txt", 5, minimal_word_occurences=0)
     print("DS len", len(DS))
     for i in range(len(DS)):
         print("DS GET ITEM 0", DS.__getitem__(i))

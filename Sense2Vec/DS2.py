@@ -1,60 +1,105 @@
-import os
+import sys
+from collections import Counter
 
-import torch
-from torchtext import data
-from torchtext.datasets import LanguageModelingDataset
-from Sense2Vec.tokenizer import create_custom_tokenizer
-import spacy
-
-nlp = spacy.load("en_core_web_sm")
+import numpy as np
+from torch.utils.data import Dataset
+from tqdm import tqdm
 
 
-class DS2:
-    def __init__(self, input_file_path, batch_size, bptt_len, device, TEXT=None):
-        self.batch_size, self.bptt_len, self.device = batch_size, bptt_len, device
+class DS(Dataset):
+    def __init__(self, file_path, window_size, minimal_word_occurences=3, token2idx=None, dataset=None):
+        self.sentences = []
+        self.unique_tokens = set()
+        self.token2idx = {
+            '<end>': 0
+        }
+        self.tokens_counter = Counter()
 
-        self.tokenizer = create_custom_tokenizer(nlp)
-        if TEXT is None:
-            self.TEXT = data.Field(
-                lower=True,
-                tokenize=self.tokenize,
-                batch_first=True,
-                sequential=True
-            )
-            # self.TEXT.vocab.
-            self.dataset = LanguageModelingDataset(input_file_path, self.TEXT)
-            self.TEXT.build_vocab(self.dataset)
+        assert window_size % 2 == 1, "window_size must be odd"
+        self.window_size = window_size
+
+        if token2idx is not None:
+            self.token2idx = token2idx
         else:
-            self.TEXT = TEXT
-            self.dataset = LanguageModelingDataset(input_file_path, self.TEXT)
+            ' flattening the file to single list '
+            for token in tqdm(open(file_path).read().split(), desc='Counting tokens'):
+                if token.lower() not in ['\t', '\n']:
+                    self.tokens_counter[token.lower()] += 1
 
-    def tokenize(self, text):
-        return [tok.text for tok in self.tokenizer(text)]
+            for sentence in tqdm(open(file_path).readlines(), desc='Removing wrong sentences'):
+                sentence = sentence.replace("\n", "").split()
+                local_tokens = []
+                if len(sentence) > self.window_size:
+                    for token in sentence:
+                        if token.lower() in self.tokens_counter.keys() and \
+                                self.tokens_counter[token.lower()] >= minimal_word_occurences:
+                            local_tokens.append(token.lower())
 
-    def build_iterator(self):
-        # train_iterator = data.BPTTIterator(
-        #     self.dataset,
-        #     batch_size=self.batch_size,
-        #     bptt_len=self.bptt_len,
-        #     train=True,
-        #     device=self.device,
-        #     repeat=False,
-        #     shuffle=False
-        # )
-        train_iterator = data.BucketIterator(
-            self.dataset,
-            sort_key=lambda x: len(x.text),
-            batch_size=self.batch_size,
-            train=True
+                            if token not in self.unique_tokens:
+                                self.unique_tokens.add(token.lower())
+                        else:
+                            break
+                    self.sentences.append(local_tokens)
+
+            ' token2idx '
+            for token in tqdm(self.unique_tokens, desc="Building token2idx"):
+                self.token2idx[token] = len(self.token2idx)
+
+        if dataset is not None:
+            self.dataset = dataset
+        else:
+            self.dataset = []
+
+            # build dataset
+            for sentence in self.sentences:
+                self.dataset += self.process_sentence(sentence)
+
+    def process_sentence(self, tokenized_sentence):
+        half_of_window = int(self.window_size / 2)
+        parts = []
+
+        ' add special tokens '
+        tokenized_sentence = ['<end>' for _ in range(half_of_window)] + tokenized_sentence + ['<end>' for _ in
+                                                                                              range(half_of_window)]
+
+        for step in range(len(tokenized_sentence) - 2 * half_of_window):
+            ' out token '
+            out_token = tokenized_sentence[step + half_of_window]
+
+            ' inputs '
+            left_side = tokenized_sentence[step:step + half_of_window]
+            right_side = tokenized_sentence[step + half_of_window + 1:step + 1 + 2 * half_of_window]
+
+            parts.append(left_side + [out_token] + right_side)
+
+        return parts
+
+    def numericalize(self, part):
+        return [self.token2idx[token] for token in part]
+
+    def split_list_to_CBOW(self, part):
+        half_of_window = int(self.window_size / 2)
+
+        inputs = part[0:half_of_window] + part[half_of_window + 1:1 + 2 * half_of_window]
+        outputs = part[half_of_window]
+
+        return inputs, outputs
+
+    def __len__(self):
+        return len(self.dataset)
+
+    def __getitem__(self, index):
+        numerizalized = self.split_list_to_CBOW(
+            self.numericalize(self.dataset[index])
         )
-        return train_iterator
+
+        return np.array(numerizalized[0]), np.array(numerizalized[1])
 
 
 if __name__ == '__main__':
-    ds = DS2(os.path.join("..", "data", "tagged_data", "corpus_tokens.txt"), 2, 3, torch.device("cpu"))
-    batches = ds.build_iterator()
-
-    for batch in batches:
-        print(batch.text)
-        print(batch.target)
-        break
+    DS = DS("../data/postprocessed/corpus_sm.txt", 5, minimal_word_occurences=0)
+    print(DS.dataset)
+    print(DS.token2idx)
+    print("DS len", len(DS))
+    for i in range(len(DS)):
+        print("DS GET ITEM {}".format(i), DS.__getitem__(i))

@@ -6,7 +6,7 @@ python '3. Sense2Vec - CBOW.py' \
   --device=cuda:4 \
   --input_corpus=data/postprocessed/ds_full.txt \
   --embeddings_size=150 \
-  --target_vectors=200 \
+  --target_vectors=150 \
   --mlflow_host=http://192.168.113.181:5000 \
   --mlflow_experiment=Sense2Vec_full_test \
   --model_pickles_dir_path=data/models \

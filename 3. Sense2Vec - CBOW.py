@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 from tqdm import tqdm
 import numpy as np
 
-from Sense2Vec.DS import DS
+from Sense2Vec.DS2 import DS
 from Sense2Vec.Sense2VecCBOW import Sense2VecCBOW
 
 torch.manual_seed(1010101011)
