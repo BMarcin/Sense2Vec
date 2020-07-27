@@ -51,7 +51,7 @@ class DS(Dataset):
             self.dataset = []
 
             # build dataset
-            for sentence in self.sentences:
+            for sentence in tqdm(self.sentences, desc="Building dataset"):
                 self.dataset += self.process_sentence(sentence)
 
     def process_sentence(self, tokenized_sentence):
