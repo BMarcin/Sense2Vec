@@ -54,6 +54,8 @@ class DS(Dataset):
             for sentence in tqdm(self.sentences, desc="Building dataset"):
                 self.dataset += self.process_sentence(sentence)
 
+        del  self.sentences
+
     def process_sentence(self, tokenized_sentence):
         half_of_window = int(self.window_size / 2)
         parts = []
