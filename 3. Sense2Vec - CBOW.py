@@ -108,14 +108,8 @@ if __name__ == '__main__':
     )
 
     parser.add_option(
-        "--mlflow_host",
-        dest="mlflow_host",
-        type=str
-    )
-
-    parser.add_option(
-        "--mlflow_experiment",
-        dest="mlflow_experiment",
+        "--experiment",
+        dest="experiment",
         type=str
     )
 
