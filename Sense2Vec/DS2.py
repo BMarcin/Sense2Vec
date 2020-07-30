@@ -2,6 +2,7 @@ import sys
 from collections import Counter
 
 import numpy as np
+import torch
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
@@ -95,7 +96,7 @@ class DS(Dataset):
             self.numericalize(self.dataset[index])
         )
 
-        return np.array(numerizalized[0]), np.array(numerizalized[1])
+        return torch.tensor(numerizalized[0]).long(), torch.tensor(numerizalized[1]).long()
 
 
 if __name__ == '__main__':

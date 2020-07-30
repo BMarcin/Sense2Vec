@@ -1,14 +1,13 @@
 import os
 import random
+import string
 from optparse import OptionParser
 
-import mlflow
 import torch
 import torch.nn as nn
+from poutyne.framework import Model, Experiment
 from torch import optim
 from torch.utils.data import DataLoader
-from tqdm import tqdm
-import numpy as np
 
 from Sense2Vec.DS2 import DS
 from Sense2Vec.Sense2VecCBOW import Sense2VecCBOW
@@ -17,50 +16,14 @@ torch.manual_seed(1010101011)
 random.seed(1010101011)
 
 
-def train(epochs, criterion, optimizer, model, dataloader, savepath, device, save_each=None):
-    print("Experiment ID: {}".format(mlflow.active_run().info.run_id))
-    percent_count = int(len(dataloader) / 300)
-    step = 0
-    for epoch in range(epochs):
-        t_batch = tqdm(dataloader, leave=False)
+def get_experiment_id(path):
+    letters = string.ascii_lowercase
+    result_str = ''.join(random.choice(letters) for i in range(32))
 
-        epoch_loss = []
+    while os.path.exists(os.path.join(path, result_str)):
+        result_str = ''.join(random.choice(letters) for i in range(32))
 
-        for i, batch in enumerate(t_batch):
-            x = batch[0].long().to(device)
-            y = batch[1].long().to(device)
-
-            model.train()
-            optimizer.zero_grad()
-
-            y_ = model(x)
-            single_loss = criterion(y_, y)
-            single_loss.backward()
-            optimizer.step()
-
-            single_loss_value = single_loss.detach().item()
-            epoch_loss.append(single_loss_value)
-
-            t_batch.set_description("Loss: {:.8f}".format(np.mean(epoch_loss[-1000:])))
-
-            if save_each:
-                if i % save_each == 0 and i != 0:
-                    torch.save(model.state_dict(),
-                               os.path.join(savepath, mlflow.active_run().info.run_id,
-                                            "model_cbow_step_{}_epoch_{}.pth".format(i, epoch + 1)))
-
-            if i % percent_count == 0:
-                mlflow.log_metric('bs_loss_mean', np.mean(epoch_loss[-1000:]), step=step)
-                step += 1
-
-        t_batch.close()
-        mlflow.log_metric('epoch_loss_mean', np.mean(epoch_loss), step=epoch + 1)
-
-        torch.save(model.state_dict(),
-                   os.path.join(savepath, mlflow.active_run().info.run_id, "model_cbow_epoch{}.pth".format(epoch + 1)))
-        print("Epoch {}/{}, Loss {:.8f}".format(epoch + 1, epochs, single_loss_value))
-
-    mlflow.log_artifact(os.path.abspath(os.path.join(savepath, mlflow.active_run().info.run_id)))
+    return result_str
 
 
 if __name__ == '__main__':
@@ -164,8 +127,7 @@ if __name__ == '__main__':
 
     options, args = parser.parse_args()
 
-    mlflow.set_tracking_uri(options.mlflow_host)
-    mlflow.set_experiment(options.mlflow_experiment)
+    experiment_id = options.experiment
 
     lr = options.lr
     bs = options.bs
@@ -203,37 +165,29 @@ if __name__ == '__main__':
                    os.path.join(options.dataset_pickle_path, "ds_dataset__seq_len_{}__min_token_occ_{}.pth".format(
                        str(seq_len), int(minimal_token_occurences))))
 
-    with mlflow.start_run():
-        mlflow.log_param('lr', lr)
-        mlflow.log_param('bs', bs)
-        mlflow.log_param('seq_len', seq_len)
-        mlflow.log_param('epochs', epochs)
-        mlflow.log_param('min_occurences', minimal_token_occurences)
-        mlflow.log_param('embeddings_size', options.embeddings_size)
-        mlflow.log_param('target_vectors', options.target_vectors)
-
         print("DS unique values", len(ds.token2idx))
 
-        DL = DataLoader(dataset=ds, batch_size=bs, num_workers=8, shuffle=True)
-        os.mkdir(os.path.join(options.model_pickles_dir_path, mlflow.active_run().info.run_id))
+    DL = DataLoader(dataset=ds, batch_size=bs, num_workers=4, shuffle=True)
+    # os.mkdir(os.path.join(options.model_pickles_dir_path, experiment_id))
 
-        model = Sense2VecCBOW(
-            len(ds.token2idx),
-            options.embeddings_size,
-            options.target_vectors,
-            options.seq_len
-        ).to(device)
+    model = Sense2VecCBOW(
+        len(ds.token2idx),
+        options.embeddings_size,
+        options.target_vectors,
+        options.seq_len
+    )
 
-        criterion = nn.CrossEntropyLoss()
-        optimizer = optim.Adam(model.parameters(), lr=lr)
+    criterion = nn.CrossEntropyLoss()
+    optimizer = optim.Adam(model.parameters(), lr=lr)
 
-        train(
-            epochs,
-            criterion,
-            optimizer,
-            model,
-            DL,
-            options.model_pickles_dir_path,
-            device,
-            save_each=40000
-        )
+    experiment = Experiment(
+        'experiments/'+experiment_id,
+        model,
+        optimizer=optimizer,
+        loss_function=criterion,
+        batch_metrics=['accuracy'],
+        monitor_metric='acc',
+        device=device
+    )
+
+    experiment.train(DL, epochs=epochs)
