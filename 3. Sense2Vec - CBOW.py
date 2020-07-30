@@ -38,7 +38,7 @@ def train(epochs, criterion, optimizer, model, dataloader, savepath, device, sav
             single_loss.backward()
             optimizer.step()
 
-            single_loss_value = single_loss.item()
+            single_loss_value = single_loss.detach().item()
             epoch_loss.append(single_loss_value)
 
             t_batch.set_description("Loss: {:.8f}".format(np.mean(epoch_loss[-1000:])))

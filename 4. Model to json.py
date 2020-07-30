@@ -47,13 +47,13 @@ if __name__ == '__main__':
 
     options, args = parser.parse_args()
 
-    token2idx = torch.load(os.path.join(options.dataset_pickle_path, "ds_token2idx.pth"))
+    token2idx = torch.load(options.dataset_pickle_path)
     device = torch.device("cpu")
     model = Sense2VecCBOW(
         len(token2idx),
         options.embeddings_size,
         options.target_vectors,
-        15
+        5
     ).to(device)
 
     model.load_state_dict(torch.load(options.model_pickle_path))
