@@ -214,7 +214,7 @@ if __name__ == '__main__':
 
         print("DS unique values", len(ds.token2idx))
 
-        DL = DataLoader(dataset=ds, batch_size=bs, num_workers=8)
+        DL = DataLoader(dataset=ds, batch_size=bs, num_workers=8, shuffle=True)
         os.mkdir(os.path.join(options.model_pickles_dir_path, mlflow.active_run().info.run_id))
 
         model = Sense2VecCBOW(
