@@ -156,7 +156,7 @@ if __name__ == '__main__':
                    os.path.join(options.dataset_pickle_path, "ds_token2idx__seq_len_{}__min_token_occ_{}.pth".format(
                        str(seq_len), int(minimal_token_occurences))))
         torch.save(ds.dataset,
-                   os.path.join(options.dataset_pickle_path, "ds_dataset__seq_len_{}__min_token_occ_{}.pth".format(
+                  os.path.join(options.dataset_pickle_path, "ds_dataset__seq_len_{}__min_token_occ_{}.pth".format(
                        str(seq_len), int(minimal_token_occurences))))
 
         print("DS unique values", len(ds.token2idx))
