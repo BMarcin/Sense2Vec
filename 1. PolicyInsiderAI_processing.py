@@ -31,7 +31,7 @@ class ElasticSearchClient:
                     "must": [
                         {
                             "match": {
-                                "language_version_info.en.keyword": "original"
+                                "language_version_info.de.keyword": "original"
                             }
                         }
                     ]
@@ -39,10 +39,10 @@ class ElasticSearchClient:
             }
         }
 
-    def _process_policy_insider_scrolled_doc(self, document: dict) -> str:
+    def _process_policy_insider_scrolled_doc(self, document: dict, language: str) -> str:
         try:
-            if 'content' in document['_source']['en'].keys():
-                content_parts = document['_source']['en']['content']
+            if 'content' in document['_source'][language].keys():
+                content_parts = document['_source'][language]['content']
                 content = "".join([content_part['content'] for content_part in content_parts])
 
                 return remove_html(content)
@@ -81,7 +81,7 @@ class ElasticSearchClient:
             scroll_size = len(data['hits']['hits'])
 
             for doc in tqdm(data['hits']['hits'], desc="Processing"):
-                processed_doc = self._process_policy_insider_scrolled_doc(doc)
+                processed_doc = self._process_policy_insider_scrolled_doc(doc, 'de')
                 if len(processed_doc) > 10:
                     current_docs.append(processed_doc)
 
@@ -91,7 +91,7 @@ class ElasticSearchClient:
                 data = self.connection.scroll(scroll_id=scroll_id, scroll="2m")
 
                 for doc in tqdm(data['hits']['hits'], desc="Processing"):
-                    processed_doc = self._process_policy_insider_scrolled_doc(doc)
+                    processed_doc = self._process_policy_insider_scrolled_doc(doc, 'de')
                     if len(processed_doc) > 10:
                         current_docs.append(processed_doc)
 

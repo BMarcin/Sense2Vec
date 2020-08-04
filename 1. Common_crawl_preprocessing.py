@@ -89,6 +89,8 @@ if __name__ == '__main__':
 
     to_write = []
 
+    logging.info("Starting downloading")
+
     ' download data '
     ccd = CommonCrawlDownloader(
         options.search_string.split(","),

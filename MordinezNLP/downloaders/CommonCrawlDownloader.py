@@ -29,6 +29,8 @@ class CommonCrawlDownloader:
 
         self.post_sources = []
 
+        print(links_to_search)
+
         # use multithreading
         with Pool(7) as p:
             records = tqdm(p.map(self.get_sources_for_url, links_to_search), desc="Downloading indexes")
