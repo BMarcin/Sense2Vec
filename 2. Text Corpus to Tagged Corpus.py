@@ -35,7 +35,10 @@ def preprocess_pipeline(input_dir_path, output_file_path, custom_tokenizer_func,
                     if sent not in sentences:
                         combs = []
                         for token in sent:
-                            combs.append(token.text + "|" + replacement_list[token.pos_])
+                            if len(token.text) < 20:
+                                combs.append(token.lemma_ + "|" + replacement_list[token.pos_])
+                            else:
+                                break
 
                         fp.write(" ".join(combs) + " \n")
                         sentences.add(sent)
