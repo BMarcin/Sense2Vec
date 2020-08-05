@@ -150,7 +150,7 @@ if __name__ == '__main__':
     )
 
     criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=lr)
+    optimizer = optim.SGD(model.parameters(), lr=lr)
 
     experiment = Experiment(
         experiment_path,

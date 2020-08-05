@@ -1,13 +1,12 @@
 python '3. Sense2Vec - CBOW.py' \
   --lr=3e-3 \
   --bs=2500 \
-  --seq_len=7 \
+  --seq_len=5 \
   --epochs=8 \
-  --device=cuda:4 \
-  --input_corpus=data/postprocessed/ds_full.txt \
-  --embeddings_size=150 \
-  --target_vectors=200 \
-  --experiment=Sense2Vec_full_test \
-  --model_pickles_dir_path=data/models \
+  --device=cuda:0 \
+  --input_corpus=data/postprocessed/ds_wiki.txt \
+  --embeddings_size=30 \
+  --target_vectors=50 \
+  --experiment_path=experiments/wiki_local_1 \
   --dataset_pickle_path=data/datasets \
-  --minimal_token_occurences=10
+  --minimal_token_occurences=4
