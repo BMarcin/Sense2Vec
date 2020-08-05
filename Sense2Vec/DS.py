@@ -1,98 +1,96 @@
-import sys
 from collections import Counter
 
-import numpy as np
+import torch
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
-from Sense2Vec.tokenizer import create_custom_tokenizer
-
 
 class DS(Dataset):
-    def __init__(self, file_path, window_size, minimal_word_occurences=3, token2idx=None, dataset=None):
-        self.tokens = []
+    def __init__(self,
+                 corpus_path,
+                 window_size,
+                 dataset_x=None,
+                 dataset_y=None,
+                 token2idx=None,
+                 minimal_word_occurences=3):
+        self.corpus_path = corpus_path
+
+        self.counter = Counter()
         self.token2idx = {
-            '<end>': 0
+            "<null>": 0
         }
-        self.tokens_counter = Counter()
 
-        assert window_size % 2 == 1, "window_size must be odd"
         self.window_size = window_size
+        self.half_of_window_size = int(self.window_size / 2)
+        self.min_occurences = minimal_word_occurences
 
-        if token2idx is not None:
+        self.sentences_len = 0
+
+        if dataset_x and dataset_y and token2idx:
+            self.ds_x = dataset_x
+            self.ds_y = dataset_y
             self.token2idx = token2idx
+
+            print("Tokens: {}".format(len(self.token2idx)))
         else:
-            ' flattening the file to single list '
-            for token in tqdm(open(file_path).read().split(), desc='Counting tokens'):
-                if token.lower() not in ['\t', '\n']:
-                    self.tokens_counter[token.lower()] += 1
+            with open(corpus_path) as f:
+                for sentence in tqdm(f, desc="Counting tokens"):
+                    self.sentences_len += 1
+                    sentence = sentence.replace("\n", "")
+                    for token in sentence.split():
+                        self.counter[token.lower()] += 1
 
-            # for doc in tqdm(nlp.pipe(
-            #         open(file_path),
-            #         disable=["ner"],
-            #         batch_size=30000,
-            #         n_process=16
-            # ), desc='Removing wrong sentences'):
-            for sentence in tqdm(open(file_path).readlines(), desc='Removing wrong sentences'):
-                sentence = sentence.replace("\n", "").split()
-                local_tokens = []
-                if len(sentence) > self.window_size:
-                    for token in sentence:
-                        if token.lower() in self.tokens_counter.keys() and \
-                                self.tokens_counter[token.lower()] >= minimal_word_occurences:
-                            local_tokens.append(token.lower())
-                        else:
-                            break
-                    self.tokens += local_tokens
+            ' build vocab '
+            self.vocab = set([token for token in self.counter.keys() if self.counter[token] >= self.min_occurences])
 
-            ' token2idx '
-            for token in tqdm(set(self.tokens), desc="Building token2idx"):
+            ' build token2idx '
+            for token in tqdm(self.vocab, desc="Building token2idx"):
                 self.token2idx[token] = len(self.token2idx)
 
-        if dataset is not None:
-            self.dataset = dataset
-        else:
-            ' fix begging of tokens list '
-            self.tokens = ['<end>' for _ in range(int(self.window_size / 2))] + self.tokens
+            print("Tokens: {}".format(len(self.token2idx)))
 
-            print("Sample", self.tokens[0:100])
+            self.ds_x = []
+            self.ds_y = []
+            for inputs, output in tqdm(self.build_ds(), desc="Building dataset"):
+                inputs, output = self.numericalize(inputs, output)
+                self.ds_x.append(inputs)
+                self.ds_y.append(output)
 
-            ' build dataset '
-            progress = tqdm(total=len(self.tokens), desc='Building dataset')
-            self.dataset = self.process_sequence(self.tokens, lambda x: progress.update(x))
-            progress.close()
+    def build_ds(self):
+        with open(self.corpus_path) as f:
+            for sentence in f:
+                sentence = sentence.replace("\n", "").lower()
 
-            del self.tokens
+                sent_splt = sentence.split()
 
-    def process_sequence(self, tokenized_sentence, lambda_fn=None):
-        parts = []
-        for step in range(0, len(self.tokens) - 1):
-            part = tokenized_sentence[step:step + self.window_size]
-            part += ['<end>' for _ in range(self.window_size - len(part))]
-            parts.append(part)
+                uniq_sentence = set(sent_splt)
 
-            if lambda_fn:
-                lambda_fn(step)
-        return parts
+                if uniq_sentence.issubset(self.vocab) and len(sent_splt) >= self.window_size:
+                    splitted = sent_splt
+                    sentence_splitted = ['<null>' for _ in range(self.half_of_window_size)] + \
+                                        splitted + ['<null>' for _ in range(self.half_of_window_size)]
 
-    def numericalize(self, part):
-        return [self.token2idx[token] for token in part]
+                    index = len(sentence_splitted)
+                    while len(splitted) > 0:
+                        token = splitted.pop()
 
-    def split_list_to_CBOW(self, part):
-        half = int(self.window_size / 2)
-        ins = part[0:half] + part[half + 1:]
-        outs = part[half]
-        return ins, outs
+                        inputs_left = sentence_splitted[
+                                      index - 2 * self.half_of_window_size - 1:index - 2 * self.half_of_window_size + self.half_of_window_size - 1]
+                        inputs_right = sentence_splitted[
+                                       index - 2 * self.half_of_window_size + self.half_of_window_size:index - 2 * self.half_of_window_size + self.half_of_window_size + self.half_of_window_size]
 
-    def __len__(self):
-        return len(self.dataset)
+                        index = index - 1
+
+                        yield inputs_left + inputs_right, token
+
+    def numericalize(self, inputs, output):
+        return [self.token2idx[token] for token in inputs], self.token2idx[output]
 
     def __getitem__(self, index):
-        numerizalized = self.split_list_to_CBOW(
-            self.numericalize(self.dataset[index])
-        )
+        return torch.tensor(self.ds_x[index]).long(), torch.tensor(self.ds_y[index]).long()
 
-        return np.array(numerizalized[0]), np.array(numerizalized[1])
+    def __len__(self):
+        return len(self.ds_x)
 
 
 if __name__ == '__main__':

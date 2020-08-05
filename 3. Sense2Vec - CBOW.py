@@ -1,30 +1,18 @@
 import os
 import random
-import string
 from optparse import OptionParser
 
 import torch
 import torch.nn as nn
-from poutyne.framework import Model, Experiment
-from torch import optim
+import torch.optim as optim
+from poutyne.framework import Experiment
 from torch.utils.data import DataLoader
 
-from Sense2Vec.DS2 import DS
+from Sense2Vec.DS import DS
 from Sense2Vec.Sense2VecCBOW import Sense2VecCBOW
 
 torch.manual_seed(1010101011)
 random.seed(1010101011)
-
-
-def get_experiment_id(path):
-    letters = string.ascii_lowercase
-    result_str = ''.join(random.choice(letters) for i in range(32))
-
-    while os.path.exists(os.path.join(path, result_str)):
-        result_str = ''.join(random.choice(letters) for i in range(32))
-
-    return result_str
-
 
 if __name__ == '__main__':
     parser = OptionParser()
@@ -87,9 +75,9 @@ if __name__ == '__main__':
     )
 
     parser.add_option(
-        "--model_pickles_dir_path",
-        dest="model_pickles_dir_path",
-        help="Dir path to save model each epoch",
+        "--experiment_path",
+        dest="experiment_path",
+        help="Dir path to save experiment",
         metavar="PATH"
     )
 
@@ -108,12 +96,6 @@ if __name__ == '__main__':
     )
 
     parser.add_option(
-        "--experiment",
-        dest="experiment",
-        type=str
-    )
-
-    parser.add_option(
         "--minimal_token_occurences",
         dest="minimal_token_occurences",
         type=int
@@ -121,48 +103,44 @@ if __name__ == '__main__':
 
     options, args = parser.parse_args()
 
-    experiment_id = options.experiment
-
+    experiment_path = options.experiment_path
     lr = options.lr
     bs = options.bs
     seq_len = options.seq_len
     epochs = options.epochs
     device = torch.device(options.device)
     minimal_token_occurences = options.minimal_token_occurences
+    dataset_pickle_path = options.dataset_pickle_path
 
     assert seq_len % 2 == 1, 'Seq len has to be odd number'
 
-    if os.path.exists(os.path.join(options.dataset_pickle_path,
-                                   "ds_token2idx__seq_len_{}__min_token_occ_{}.pth".format(
-                                       str(seq_len), str(minimal_token_occurences)))) and os.path.exists(
-        os.path.join(options.dataset_pickle_path,
-                     "ds_dataset__seq_len_{}__min_token_occ_{}.pth".format(str(seq_len),
-                                                                           str(minimal_token_occurences)))):
+    token2idx_save_path = os.path.join(dataset_pickle_path,
+                                       "ds_t2x_s{}_c{}.pth".format(str(seq_len), str(minimal_token_occurences)))
+    dataset_x_save_path = os.path.join(dataset_pickle_path,
+                                       "ds_x_s{}_c{}.pth".format(str(seq_len), str(minimal_token_occurences)))
+    dataset_y_save_path = os.path.join(dataset_pickle_path,
+                                       "ds_y_s{}_c{}.pth".format(str(seq_len), str(minimal_token_occurences)))
+
+    if os.path.exists(token2idx_save_path) and os.path.exists(dataset_x_save_path) and os.path.exists(
+            dataset_y_save_path):
         print("Dataset exists")
         ds = DS(
             options.input_corpus,
             options.seq_len,
-            dataset=torch.load(
-                os.path.join(options.dataset_pickle_path, "ds_dataset__seq_len_{}__min_token_occ_{}.pth".format(
-                    str(seq_len), int(minimal_token_occurences)))),
-            token2idx=torch.load(
-                os.path.join(options.dataset_pickle_path, "ds_token2idx__seq_len_{}__min_token_occ_{}.pth".format(
-                    str(seq_len), int(minimal_token_occurences)))),
+            dataset_x=torch.load(dataset_x_save_path),
+            dataset_y=torch.load(dataset_y_save_path),
+            token2idx=torch.load(token2idx_save_path),
             minimal_word_occurences=minimal_token_occurences
         )
     else:
         ds = DS(options.input_corpus, options.seq_len, minimal_word_occurences=minimal_token_occurences)
-        torch.save(ds.token2idx,
-                   os.path.join(options.dataset_pickle_path, "ds_token2idx__seq_len_{}__min_token_occ_{}.pth".format(
-                       str(seq_len), int(minimal_token_occurences))))
-        torch.save(ds.dataset,
-                  os.path.join(options.dataset_pickle_path, "ds_dataset__seq_len_{}__min_token_occ_{}.pth".format(
-                       str(seq_len), int(minimal_token_occurences))))
+        torch.save(ds.token2idx, token2idx_save_path)
+        torch.save(ds.ds_x, dataset_x_save_path)
+        torch.save(ds.ds_y, dataset_y_save_path)
 
-        print("DS unique values", len(ds.token2idx))
+    print("DS unique values", len(ds.token2idx))
 
     DL = DataLoader(dataset=ds, batch_size=bs, num_workers=4, shuffle=True)
-    # os.mkdir(os.path.join(options.model_pickles_dir_path, experiment_id))
 
     model = Sense2VecCBOW(
         len(ds.token2idx),
@@ -175,12 +153,13 @@ if __name__ == '__main__':
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
     experiment = Experiment(
-        'experiments/'+experiment_id,
+        experiment_path,
         model,
         optimizer=optimizer,
         loss_function=criterion,
         batch_metrics=['accuracy'],
         monitor_metric='acc',
+        monitor_mode='max',
         device=device
     )
 
