@@ -64,6 +64,7 @@ class DS(Dataset):
             self.ds_x = np.array(self.ds_x)
             self.ds_y = np.array(self.ds_y)
 
+        self.out_base = np.array([0 for _ in range(len(self.token2idx))])
         # with open("ds.txt", "w") as f:
         #     print('saving')
         #     for x, y in self.build_ds():
@@ -103,7 +104,7 @@ class DS(Dataset):
         # inputs, output = self.build_ds()
         # inputs, output = self.numericalize(inputs, output)
         # return torch.tensor(inputs).long(), torch.tensor(output).long()
-        out = [0 for _ in range(len(self.token2idx))]
+        out = self.out_base.copy()
         out[self.ds_y[index]] = 1
         return torch.tensor(self.ds_x[index]).long(), torch.tensor(out).float()
 
