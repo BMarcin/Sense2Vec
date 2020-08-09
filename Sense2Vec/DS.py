@@ -4,6 +4,8 @@ import torch
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
+import numpy as np
+
 
 class DS(Dataset):
     def __init__(self,
@@ -26,7 +28,7 @@ class DS(Dataset):
 
         self.sentences_len = 0
 
-        if dataset_x and dataset_y and token2idx:
+        if dataset_x is not None and dataset_y is not None and token2idx:
             self.ds_x = dataset_x
             self.ds_y = dataset_y
             self.token2idx = token2idx
@@ -37,7 +39,7 @@ class DS(Dataset):
                 for sentence in tqdm(f, desc="Counting tokens"):
                     self.sentences_len += 1
                     sentence = sentence.replace("\n", "")
-                    for token in sentence.split():
+                    for token in sentence.split("\t"):
                         self.counter[token.lower()] += 1
 
             ' build vocab '
@@ -55,13 +57,24 @@ class DS(Dataset):
                 inputs, output = self.numericalize(inputs, output)
                 self.ds_x.append(inputs)
                 self.ds_y.append(output)
+                # out = [0 for _ in range(len(self.token2idx))]
+                # out[output] = 1
+                # self.ds_y.append(out)
+
+            self.ds_x = np.array(self.ds_x)
+            self.ds_y = np.array(self.ds_y)
+
+        # with open("ds.txt", "w") as f:
+        #     print('saving')
+        #     for x, y in self.build_ds():
+        #         f.write(",".join(x) + "\t\t" + y + "\n")
 
     def build_ds(self):
         with open(self.corpus_path) as f:
             for sentence in f:
                 sentence = sentence.replace("\n", "").lower()
 
-                sent_splt = sentence.split()
+                sent_splt = sentence.split("\t")
 
                 uniq_sentence = set(sent_splt)
 
@@ -87,10 +100,16 @@ class DS(Dataset):
         return [self.token2idx[token] for token in inputs], self.token2idx[output]
 
     def __getitem__(self, index):
-        return torch.tensor(self.ds_x[index]).long(), torch.tensor(self.ds_y[index]).long()
+        # inputs, output = self.build_ds()
+        # inputs, output = self.numericalize(inputs, output)
+        # return torch.tensor(inputs).long(), torch.tensor(output).long()
+        out = [0 for _ in range(len(self.token2idx))]
+        out[self.ds_y[index]] = 1
+        return torch.tensor(self.ds_x[index]).long(), torch.tensor(out).float()
 
     def __len__(self):
         return len(self.ds_x)
+        # return self.ds_len
 
 
 if __name__ == '__main__':

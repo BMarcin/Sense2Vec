@@ -35,12 +35,18 @@ def preprocess_pipeline(input_dir_path, output_file_path, custom_tokenizer_func,
                     if sent not in sentences:
                         combs = []
                         for token in sent:
-                            if len(token.text) < 20:
-                                combs.append(token.lemma_ + "|" + replacement_list[token.pos_])
-                            else:
-                                break
+                            pos = token.pos_
+                            if pos != 'PUNCT' and token.text != ' ':
+                                if len(token.text) < 25:
+                                    if token.lemma_ == '-PRON-':
+                                        valid_token = token.text
+                                    else:
+                                        valid_token = token.lemma_
+                                    combs.append(valid_token.lower() + "|" + replacement_list[pos])
+                                else:
+                                    break
 
-                        fp.write(" ".join(combs) + " \n")
+                        fp.write("\t".join(combs) + "\n")
                         sentences.add(sent)
     else:
         print(output_file_path + " Exists")

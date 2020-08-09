@@ -140,7 +140,7 @@ if __name__ == '__main__':
 
     print("DS unique values", len(ds.token2idx))
 
-    DL = DataLoader(dataset=ds, batch_size=bs, num_workers=4, shuffle=True)
+    DL = DataLoader(dataset=ds, batch_size=bs, num_workers=7, shuffle=False, pin_memory=True)
 
     model = Sense2VecCBOW(
         len(ds.token2idx),
@@ -149,17 +149,17 @@ if __name__ == '__main__':
         options.seq_len
     )
 
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.SGD(model.parameters(), lr=lr)
+    criterion = nn.BCEWithLogitsLoss()
+    optimizer = optim.Adam(model.parameters(), lr=lr)
 
     experiment = Experiment(
         experiment_path,
         model,
         optimizer=optimizer,
         loss_function=criterion,
-        batch_metrics=['accuracy'],
-        monitor_metric='acc',
-        monitor_mode='max',
+        batch_metrics=[],
+        monitor_metric='loss',
+        monitor_mode='min',
         device=device
     )
 

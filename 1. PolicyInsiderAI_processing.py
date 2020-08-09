@@ -31,7 +31,7 @@ class ElasticSearchClient:
                     "must": [
                         {
                             "match": {
-                                "language_version_info.de.keyword": "original"
+                                "language_version_info.en.keyword": "original"
                             }
                         }
                     ]
@@ -91,7 +91,7 @@ class ElasticSearchClient:
                 data = self.connection.scroll(scroll_id=scroll_id, scroll="2m")
 
                 for doc in tqdm(data['hits']['hits'], desc="Processing"):
-                    processed_doc = self._process_policy_insider_scrolled_doc(doc, 'de')
+                    processed_doc = self._process_policy_insider_scrolled_doc(doc, 'en')
                     if len(processed_doc) > 10:
                         current_docs.append(processed_doc)
 

@@ -13,7 +13,9 @@ class Sense2VecCBOW(nn.Module):
 
         self.embeddings = nn.Embedding(vocab_size, embedding_size)
         self.fc_in = nn.Linear(embedding_size * (sequence_length - 1), vectors)
+        # self.fc_in = nn.Linear(embedding_size, vectors)
         self.fc_out = nn.Linear(vectors, vocab_size)
+        self.activation = nn.ReLU()
 
         self.init_weights()
 
@@ -27,7 +29,12 @@ class Sense2VecCBOW(nn.Module):
 
     def forward(self, x):
         x = self.embeddings(x)
+        # print(x.shape)
+        # x = x.mean(dim=1)
+        # print(x.shape)
         x = self.fc_in(x.reshape(len(x), -1))
+        # x = self.fc_in(x)
         # x = torch.relu(x)
+        # x = self.activation(x)
         x = self.fc_out(x)
         return x
