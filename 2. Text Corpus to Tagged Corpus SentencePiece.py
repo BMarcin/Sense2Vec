@@ -6,6 +6,7 @@ import spacy
 from tqdm import tqdm
 from glob import glob
 from Sense2Vec.tokenizer import create_custom_tokenizer as my_custom_tokenizer
+import sentencepiece as spm
 
 nlp = spacy.load("en_core_web_sm")
 
@@ -16,6 +17,15 @@ def preprocess_pipeline(input_dir_path, output_file_path, custom_tokenizer_func,
     file_inputs = [line.replace("\n", "") for file in
                    tqdm(glob(input_dir_path + "*.txt"), desc="Reading files") for
                    line in open(file, encoding="utf8").readlines()]
+
+    ' building sentencepiece model '
+    with open("temp_ds.txt", "w", encoding="utf8") as f:
+        for line in file_inputs:
+            f.write(line.lower() + "\n")
+    spm.SentencePieceTrainer.train('--input=temp_ds.txt --model_prefix=m --vocab_size=2000 --user_defined_symbols=<number>,<date>,<unknown>,<web>,<email>,<more>,<less>')
+
+    sp = spm.SentencePieceProcessor()
+    sp.load('m.model')
 
     logging.info("Starting Spacy pipeline")
     pipe = nlp.pipe(file_inputs, disable=["ner"],
@@ -38,18 +48,22 @@ def preprocess_pipeline(input_dir_path, output_file_path, custom_tokenizer_func,
                             pos = token.pos_
                             if pos != 'PUNCT' and token.text != ' ':
                                 if len(token.text) < 25:
-                                    if token.lemma_ == '-PRON-':
-                                        valid_token = token.text
-                                    else:
-                                        valid_token = token.lemma_
                                     # combs.append(valid_token.lower() + "|" + replacement_list[pos])
-                                    if valid_token[0] == '<' and valid_token[-1] == '>':
-                                        combs.append(valid_token.lower() + "|" + replacement_list[pos])
+                                    if token.text[0] == '<' and token.text[-1] == '>':
+                                        combs.append(token.text.lower() + "|" + replacement_list[pos])
                                     else:
-                                        combs.append('<' + "|" + replacement_list[pos])
-                                        for letter in valid_token:
-                                            combs.append(letter.lower() + "|" + replacement_list[pos])
-                                        combs.append('>' + "|" + replacement_list[pos])
+                                        # combs.append('<' + "|" + replacement_list[pos])
+                                        sp_encoded = sp.encode_as_pieces(token.text)
+                                        for letter_index, letter in enumerate(sp_encoded):
+                                            if letter_index == 0 and len(sp_encoded) == 1:
+                                                combs.append("<" + letter.lower() + ">|" + replacement_list[pos])
+                                            elif letter_index == 0:
+                                                combs.append("<" + letter.lower() + "|" + replacement_list[pos])
+                                            elif letter_index == len(sp_encoded) - 1:
+                                                combs.append(letter.lower() + ">|" + replacement_list[pos])
+                                            else:
+                                                combs.append(letter.lower() + "|" + replacement_list[pos])
+                                        # combs.append('>' + "|" + replacement_list[pos])
                                 else:
                                     break
 

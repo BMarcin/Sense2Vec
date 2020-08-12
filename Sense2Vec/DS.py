@@ -53,7 +53,7 @@ class DS(Dataset):
 
             self.ds_x = []
             self.ds_y = []
-            for inputs, output in tqdm(self.build_ds(), desc="Building dataset"):
+            for inputs, output in tqdm(self.build_ds_padded_sentences(), desc="Building dataset"):
                 inputs, output = self.numericalize(inputs, output)
                 self.ds_x.append(inputs)
                 self.ds_y.append(output)
@@ -64,13 +64,13 @@ class DS(Dataset):
             self.ds_x = np.array(self.ds_x)
             self.ds_y = np.array(self.ds_y)
 
-        self.out_base = np.array([0 for _ in range(len(self.token2idx))])
+        # self.out_base = np.array([0 for _ in range(len(self.token2idx))])
         # with open("ds.txt", "w") as f:
         #     print('saving')
         #     for x, y in self.build_ds():
         #         f.write(",".join(x) + "\t\t" + y + "\n")
 
-    def build_ds(self):
+    def build_ds_padded_sentences(self):
         with open(self.corpus_path) as f:
             for sentence in f:
                 sentence = sentence.replace("\n", "").lower()
@@ -104,9 +104,9 @@ class DS(Dataset):
         # inputs, output = self.build_ds()
         # inputs, output = self.numericalize(inputs, output)
         # return torch.tensor(inputs).long(), torch.tensor(output).long()
-        out = self.out_base.copy()
-        out[self.ds_y[index]] = 1
-        return torch.tensor(self.ds_x[index]).long(), torch.tensor(out).float()
+        # out = torch.zeros((len(self.token2idx)))
+        # out[self.ds_y[index]] = 1
+        return torch.tensor(self.ds_x[index]).long(), torch.tensor(self.ds_y[index]).float()
 
     def __len__(self):
         return len(self.ds_x)
