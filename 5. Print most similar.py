@@ -31,11 +31,12 @@ if __name__ == '__main__':
 
             similarities = {}
             for token, vector in tqdm(vectors.items(), desc="Calculating"):
-                similarity = cosine_similarity(
-                    [target],
-                    [vector]
-                )
-                similarities[token] = similarity[0][0]
+                if vector != 0.0:
+                    similarity = cosine_similarity(
+                        [target],
+                        [vector]
+                    )
+                    similarities[token] = similarity[0][0]
 
             similarities = dict(sorted(similarities.items(), key=lambda x: x[1], reverse=True))
 

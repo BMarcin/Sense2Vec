@@ -27,7 +27,7 @@ class DS(Dataset):
 
         self.sentences_len = 0
 
-        if dataset is not None and token2idx:
+        if dataset is not None and token2idx is not None:
             self.ds = dataset
             self.token2idx = token2idx
 

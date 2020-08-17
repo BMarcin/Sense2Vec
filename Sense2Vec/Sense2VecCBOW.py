@@ -31,11 +31,11 @@ class Sense2VecCBOW(nn.Module):
         return self.fc_out.weight.cpu().detach().tolist()
 
     def forward(self, x: torch.Tensor):
-        y = torch.zeros((x.shape[0], x.shape[1], self.vocab_size)).to(x.device)
-        y.scatter(2, x.unsqueeze(2),
-                    torch.ones(x.shape[0], self.vocab_size, 1).to(x.device)
-                  )
-        print(x, y)
+        tensor_base = torch.zeros((x.shape[0], x.shape[1], self.vocab_size), device=x.device)#.to(x.device)
+        tensor_base.scatter_(2,
+                             x.unsqueeze(2),
+                             torch.ones((x.shape[0], self.vocab_size, 1), device=x.device)#.to(x.device)
+                             )
         # for batch_index, batch_unit in enumerate(x):
         #     for token_index, token in enumerate(batch_unit):
         #         y[]
@@ -46,7 +46,7 @@ class Sense2VecCBOW(nn.Module):
         # print(x.shape)
         # x = self.pooling(x)
         # print(x.shape)
-        x = self.fc_in(y.reshape(len(x), -1))
+        x = self.fc_in(tensor_base.reshape(len(x), -1))
         # x = self.fc_in(x)
         # x = torch.relu(x)
         # x = self.activation(x)

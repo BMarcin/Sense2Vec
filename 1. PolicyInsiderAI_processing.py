@@ -6,6 +6,7 @@ import sys
 import random
 from glob import glob
 from optparse import OptionParser
+import re
 
 from elasticsearch import Elasticsearch
 from tqdm import tqdm
@@ -81,7 +82,7 @@ class ElasticSearchClient:
             scroll_size = len(data['hits']['hits'])
 
             for doc in tqdm(data['hits']['hits'], desc="Processing"):
-                processed_doc = self._process_policy_insider_scrolled_doc(doc, 'de')
+                processed_doc = self._process_policy_insider_scrolled_doc(doc, 'en')
                 if len(processed_doc) > 10:
                     current_docs.append(processed_doc)
 
@@ -103,11 +104,25 @@ class ElasticSearchClient:
             self._save_list_to_txt(current_docs, save_path)
 
 
+def remove_tables(text):
+    return re.sub('<table.+?</table>', '', text, flags=re.DOTALL)
+
+
+def post_check(text):
+    if 'library' in text:
+        print(text)
+    return text
+
+
 def preprocess_text(input_data_list, output_text_file_path):
     bp = BasicProcessor()
 
     logging.info("Processing text lists")
-    tokenized_items = bp.process(input_data_list)
+    tokenized_items = bp.process(input_data_list, pre_rules=[
+        lambda x: remove_tables(x)
+    ], post_rules=[
+        lambda x: post_check(x)
+    ])
 
     file_counter = 0
     for line_number in range(0, len(input_data_list), 1000):
