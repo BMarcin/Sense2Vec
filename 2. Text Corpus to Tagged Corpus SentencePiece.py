@@ -49,8 +49,9 @@ def preprocess_pipeline(input_dir_path, output_file_path, custom_tokenizer_func,
                                             else:
                                                 break
 
-                                    fp.write("\t".join(combs_tokens) + "\n")
-                                    fe.write("\t".join(combs_poss) + "\n")
+                                    if 'VERB' or 'AUX' in combs_poss:
+                                        fp.write("\t".join(combs_tokens) + "\n")
+                                        fe.write("\t".join(combs_poss) + "\n")
                                     sentences.add(sent)
                     except Exception as e:
                         print("Got exception {}".format(str(e)))
