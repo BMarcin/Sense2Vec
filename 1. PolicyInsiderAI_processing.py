@@ -10,6 +10,7 @@ import requests
 from tqdm import tqdm
 
 from MordinezNLP.parsing.process_pdf import process_pdf
+from MordinezNLP.preprocessing.Basic import BasicProcessor
 from Sense2Vec.ElasticSearchClient import ElasticSearchClient
 
 
@@ -66,9 +67,27 @@ if __name__ == '__main__':
         with open("doc_urls.json", "r", encoding="utf8") as f:
             doc_urls = json.loads(f.read())
 
-    thread = Thread(target=calc_downloading_progress, args=('../_utils/policyinsider_en', doc_urls))
-    thread.daemon = True
-    thread.start()
+    # thread = Thread(target=calc_downloading_progress, args=('../_utils/policyinsider_en', doc_urls))
+    # thread.daemon = True
+    # thread.start()
+    #
+    # with Pool(8) as p:
+    #     p.starmap(download_and_save, zip(repeat('../_utils/policyinsider_en'), doc_urls))
 
-    with Pool(8) as p:
-        p.starmap(download_and_save, zip(repeat('../_utils/policyinsider_en'), doc_urls))
+    input_data_list = set()
+    for file_name in tqdm(glob("../_utils/policyinsider_en/*.txt"), desc="Reading files"):
+        with open(file_name, "r", encoding="utf8") as f:
+            input_data_list.update(set(f.readlines()))
+
+    input_data_list = list(input_data_list)
+
+    bp = BasicProcessor()
+    input_data_list = bp.process(input_data_list)
+
+    file_counter = 0
+    for line_number in range(0, len(input_data_list), 1000):
+        with open("data/preprocessed/policyinsider_en" + "-" + str(file_counter) + ".txt", "w", encoding="utf8") as f:
+            for item in tqdm(input_data_list[line_number:line_number + 1000],
+                             desc='Saving file {}'.format("data/preprocessed/policyinsider_en" + "-" + str(file_counter) + ".txt")):
+                f.write(item + "\n")
+            file_counter += 1

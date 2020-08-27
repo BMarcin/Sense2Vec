@@ -46,6 +46,7 @@ def preprocess_pipeline(input_dir_path, output_file_path, custom_tokenizer_func,
                                     if valid_token[0] == '<' and valid_token[-1] == '>':
                                         combs.append(valid_token.lower() + "|" + replacement_list[pos])
                                     else:
+                                        print(valid_token)
                                         combs.append('<' + "|" + replacement_list[pos])
                                         for letter in valid_token:
                                             combs.append(letter.lower() + "|" + replacement_list[pos])

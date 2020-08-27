@@ -20,7 +20,7 @@ from MordinezNLP.preprocessing.HTMLRemover import remove_html
 
 
 class CommonCrawlDownloader:
-    def __init__(self, links_to_search: list, txt_files_path: str, index_name: str = "CC-MAIN-2020-24"):
+    def __init__(self, links_to_search: list, txt_files_path: str, index_name: str = "CC-MAIN-2020-24", threads=5):
         self.links_to_search = links_to_search
         self.txt_files_path = txt_files_path
         self.index_name = index_name
@@ -32,7 +32,7 @@ class CommonCrawlDownloader:
         print(links_to_search)
 
         # use multithreading
-        with Pool(5) as p:
+        with Pool(threads) as p:
             records = tqdm(p.map(self.get_sources_for_url, links_to_search), desc="Downloading indexes")
 
         # flat the output from threads
@@ -46,7 +46,7 @@ class CommonCrawlDownloader:
         thread = Thread(target=self.calc_downloading_progress, args=(self.txt_files_path,))
         thread.daemon = True
         thread.start()
-        with Pool(7) as p:
+        with Pool(threads) as p:
             p.starmap(self.download_files, zip(repeat(self.txt_files_path), self.post_sources))
 
         # progress = tqdm(total=len(self.links_to_search), desc="Downloading indexes")
@@ -134,27 +134,30 @@ class CommonCrawlDownloader:
             path_to_save = os.path.join(base_dir, re.sub(self.file_name_regex, "_", entry['filename']) + "--" +
                                         str(offset) + "-" + str(offset_end) + ".txt")
 
-            response = requests.get("{}/{}".format(base_url, entry['filename']), stream=True,
-                                    headers=headers)
-            if not os.path.exists(path_to_save):
-                if response.status_code == 206:
-                    zipped_file = io.BytesIO(response.content)
-                    unzipped_file = gzip.GzipFile(fileobj=zipped_file)
-                    raw_data: bytes = unzipped_file.read()
-                    try:
-                        text_data = raw_data.decode("utf8")
+            try:
+                response = requests.get("{}/{}".format(base_url, entry['filename']), stream=True,
+                                        headers=headers)
+                if not os.path.exists(path_to_save):
+                    if response.status_code == 206:
+                        zipped_file = io.BytesIO(response.content)
+                        unzipped_file = gzip.GzipFile(fileobj=zipped_file)
+                        raw_data: bytes = unzipped_file.read()
+                        try:
+                            text_data = raw_data.decode("utf8")
 
-                        data_parts = text_data.strip().split("\r\n\r\n", 2)
-                        if len(data_parts) == 3:
+                            data_parts = text_data.strip().split("\r\n\r\n", 2)
+                            if len(data_parts) == 3:
+                                with open(path_to_save, "w", encoding="utf8") as f:
+                                    f.write(remove_html(data_parts[2]))
+                                return path_to_save
+                        except Exception:
                             with open(path_to_save, "w", encoding="utf8") as f:
-                                f.write(remove_html(data_parts[2]))
-                            return path_to_save
-                    except Exception:
-                        with open(path_to_save, "w", encoding="utf8") as f:
-                            f.write("")
-                else:
-                    entry_list.append(entry)
-                    # raise Exception("Http response code for parital tar archive: {}".format(response.status_code))
+                                f.write("")
+                    else:
+                        entry_list.append(entry)
+            except Exception as e:
+                print("Got exception {exception}. Trying once again...")
+                entry_list.append(entry)
 
 
 if __name__ == '__main__':

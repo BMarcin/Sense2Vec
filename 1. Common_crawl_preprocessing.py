@@ -92,18 +92,19 @@ if __name__ == '__main__':
     logging.info("Starting downloading")
 
     ' download data '
-    ccd = CommonCrawlDownloader(
-        options.search_string.split(","),
-        options.common_crawl_dir_path
-    )
+    # ccd = CommonCrawlDownloader(
+    #     options.search_string.split(","),
+    #     options.common_crawl_dir_path,
+    #     threads=7
+    # )
 
-    for file in glob(options.common_crawl_dir_path + "/*.txt"):
-        current_lines = []
+    for file in tqdm(glob(options.common_crawl_dir_path + "/*.txt"), desc="Reading files"):
+        current_lines = set()
         with open(file, encoding="utf8") as f:
             for line in f.readlines():
                 if len(line) > 50:
-                    current_lines.append(line)
-        to_write.append("\n".join(current_lines))
+                    current_lines.add(line)
+        to_write.append("\n".join(list(current_lines)))
 
     preprocess_text(to_write, options.output_file_prefix)
 

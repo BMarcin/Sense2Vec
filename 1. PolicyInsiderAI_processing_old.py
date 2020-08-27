@@ -62,14 +62,14 @@ class ElasticSearchClient:
 
             logging.info("Saving file: {}".format(file_name))
             with open(os.path.join(output_path, file_name + ".txt"), "w", encoding="utf8") as f:
-                if 'library' in file_content:
-                    with open("lib.txt", "a", encoding="utf8") as f2:
-                        f2.write('Found "library" in {} in index {}\n'.format(file_name, index_name))
-                    print('Found "library" in {} in index {}'.format(file_name, index_name))
-                if 'libraryt' in file_content:
-                    with open("libt.txt", "a", encoding="utf8") as f2:
-                        f2.write('Found "libraryt" in {} in index {}\n'.format(file_name, index_name))
-                    print('Found "libraryt" in {} in index {}'.format(file_name, index_name))
+                # if 'library' in file_content:
+                #     with open("lib.txt", "a", encoding="utf8") as f2:
+                #         f2.write('Found "library" in {} in index {}\n'.format(file_name, index_name))
+                #     print('Found "library" in {} in index {}'.format(file_name, index_name))
+                # if 'libraryt' in file_content:
+                #     with open("libt.txt", "a", encoding="utf8") as f2:
+                #         f2.write('Found "libraryt" in {} in index {}\n'.format(file_name, index_name))
+                #     print('Found "libraryt" in {} in index {}'.format(file_name, index_name))
                 f.write(file_content)
 
     def _get_random_string(self, length=64):
@@ -182,21 +182,21 @@ if __name__ == '__main__':
 
     logging.info("Output file path set to: {}".format(options.output_file_prefix))
 
-    esc = ElasticSearchClient(
-        options.elastic_search_host,
-        options.elastic_search_port
-    )
-
-    print(esc.available_indexes)
-
-    for available_index in esc.available_indexes:
-        try:
-            esc.scroll_data(
-                available_index,
-                options.temp_files_path
-            )
-        except Exception as e:
-            print("Got exception: {}".format(str(e)))
+    # esc = ElasticSearchClient(
+    #     options.elastic_search_host,
+    #     options.elastic_search_port
+    # )
+    #
+    # print(esc.available_indexes)
+    #
+    # for available_index in esc.available_indexes:
+    #     try:
+    #         esc.scroll_data(
+    #             available_index,
+    #             options.temp_files_path
+    #         )
+    #     except Exception as e:
+    #         print("Got exception: {}".format(str(e)))
 
     to_write = []
 

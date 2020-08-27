@@ -49,7 +49,7 @@ def preprocess_pipeline(input_dir_path, output_file_path, custom_tokenizer_func,
                                             else:
                                                 break
 
-                                    if 'VERB' or 'AUX' in combs_poss:
+                                    if 'VERB' in combs_poss or 'AUX' in combs_poss:
                                         fp.write("\t".join(combs_tokens) + "\n")
                                         fe.write("\t".join(combs_poss) + "\n")
                                     sentences.add(sent)
